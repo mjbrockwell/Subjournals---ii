@@ -720,6 +720,48 @@ export default {
         }
       }
 
+      /**
+       * 1.5.5 🦊 Create a subjournal entry
+       */
+      async function createSubjournal(name, color) {
+        try {
+          console.log("🦊 Debug: Creating subjournal:", name, "with color:", color);
+          
+          // Get the current page title
+          const currentPageTitle = document.querySelector(".rm-title-display")?.textContent;
+          if (!currentPageTitle) {
+            console.error("❌ Could not find current page title");
+            return;
+          }
+
+          // Get or create the subjournal page
+          const subjournalPageUid = await getOrCreatePageUid(name);
+          if (!subjournalPageUid) {
+            console.error("❌ Could not get or create subjournal page");
+            return;
+          }
+
+          // Get or create the journal entries block
+          const journalEntriesBlockUid = await getOrCreateJournalEntriesBlock(subjournalPageUid);
+          if (!journalEntriesBlockUid) {
+            console.error("❌ Could not get or create journal entries block");
+            return;
+          }
+
+          // Create the date entry
+          const dateInfo = parseDatePage(currentPageTitle);
+          if (!dateInfo) {
+            console.error("❌ Could not parse date from page title:", currentPageTitle);
+            return;
+          }
+
+          await createDateEntry(journalEntriesBlockUid, dateInfo, color);
+          console.log("✅ Successfully created subjournal entry");
+        } catch (error) {
+          console.error("❌ Error creating subjournal:", error);
+        }
+      }
+
       // ==================== 1.6 🦜 UI MANAGEMENT COMPONENTS ====================
 
       /**
