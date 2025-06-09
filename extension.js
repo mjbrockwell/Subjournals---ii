@@ -293,63 +293,53 @@ This message will only show once.`);
 
     function getSubjournals() {
       try {
-        const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where 
-           [?e :node/title "roam/subjournals"] 
-           [?e :block/uid ?uid]]
+        // Get the config page and all its blocks in a single query
+        const pageData = window.roamAlphaAPI.q(`
+          [:find (pull ?page [* {:block/children [*]}])
+           :where 
+           [?page :node/title "roam/subjournals"]]
         `)?.[0]?.[0];
 
-        if (!configPageUid) return [];
+        if (!pageData) {
+          console.log("⚠ No [[roam/subjournals]] page found");
+          return [];
+        }
 
-        const allBlocks = window.roamAlphaAPI.q(`
-          [:find ?uid ?string :where 
-           [?page :block/uid "${configPageUid}"]
-           [?child :block/page ?page]
-           [?child :block/uid ?uid]
-           [?child :block/string ?string]]
-        `);
-
-        const mySubjournalsBlock = allBlocks.find(
-          ([uid, string]) => string?.trim() === "My Subjournals:"
+        // Find the "My Subjournals:" block in the page structure
+        const mySubjournalsBlock = pageData[":block/children"]?.find(block => 
+          block[":block/string"]?.trim() === "My Subjournals:"
         );
 
-        if (!mySubjournalsBlock) return [];
+        if (!mySubjournalsBlock) {
+          console.log("⚠ No 'My Subjournals:' block found");
+          return [];
+        }
 
-        const parentUid = mySubjournalsBlock[0];
-        const childUids = window.roamAlphaAPI.q(`
-          [:find ?uid :where 
-           [?parent :block/uid "${parentUid}"]
-           [?child :block/parents ?parent]
-           [?child :block/uid ?uid]]
-        `);
-
+        // Process subjournals from the block structure
         const subjournals = [];
-        childUids.forEach(([uid]) => {
-          const childData = window.roamAlphaAPI.pull(
-            "[:block/uid :block/string {:block/children [:block/uid :block/string]}]",
-            [":block/uid", uid]
+        const childBlocks = mySubjournalsBlock[":block/children"] || [];
+
+        for (const block of childBlocks) {
+          const name = block[":block/string"]?.trim();
+          if (!name || /^color\s*:/i.test(name)) continue;
+
+          // Find color in children
+          let color = "blue"; // default color
+          const colorBlock = block[":block/children"]?.find(child => 
+            /^color\s*:/i.test(child[":block/string"] || "")
           );
 
-          const name = childData[":block/string"]?.trim();
-          if (!name || /^color\s*:/i.test(name)) return;
-
-          let color = "blue";
-          const colorChildren = childData[":block/children"] || [];
-          const colorChild = colorChildren.find((grandchild) =>
-            /color\s*:/i.test(grandchild[":block/string"] || "")
-          );
-
-          if (colorChild) {
-            const colorMatch =
-              colorChild[":block/string"].match(/color\s*:\s*(\w+)/i);
-            if (colorMatch) {
-              color = colorMatch[1];
+          if (colorBlock) {
+            const colorMatch = colorBlock[":block/string"].match(/color\s*:\s*(\w+)/i);
+            if (colorMatch && COLOR_MAP[colorMatch[1].toLowerCase()]) {
+              color = colorMatch[1].toLowerCase();
             }
           }
 
           subjournals.push({ name, color });
-        });
+        }
 
+        console.log(`📔 Found ${subjournals.length} subjournals`);
         return subjournals;
       } catch (error) {
         console.error("⚠ Error getting subjournals:", error);
@@ -510,149 +500,56 @@ This message will only show once.`);
      * 1.7.4 🎯 FIXED: Bulletproof cascading creation with color-agnostic reuse
      */
     async function createDateEntry(journalUid, dateInfo, color) {
-      const startTime = Date.now();
-      const TIMEOUT = 3000;
+      console.log(`🎯 Creating date entry for ${dateInfo.fullDate}`);
       const colorTag = getColorTag(color);
       const multiUserMode = isMultiUserMode();
 
-      console.log(
-        `🎯 FIXED ALGORITHM: Creating date entry for ${dateInfo.fullDate}`
-      );
-      console.log(`🎯 Color: "${color}" → Tag: "#${colorTag}"`);
-
-      let userDisplayName = "";
-      if (multiUserMode) {
-        try {
-          userDisplayName = await getCurrentUserDisplayName();
-        } catch (userError) {
-          console.error("🎮 Error getting username:", userError);
-          userDisplayName = "User";
+      try {
+        // STEP 1: Get or create year block
+        const yearContent = `#st0 [[${dateInfo.year}]] #${colorTag}`;
+        const yearSearchPattern = `#st0 [[${dateInfo.year}]]`;
+        
+        let yearBlock = findBlockWithColorAgnosticSearch(journalUid, yearSearchPattern);
+        if (!yearBlock) {
+          console.log(`🎯 Creating new year block for ${dateInfo.year}`);
+          const yearUid = await createBlock(journalUid, yearContent, 0);
+          yearBlock = { uid: yearUid, string: yearContent };
         }
-      }
 
-      const workingOn = { step: null, uid: null, content: null };
-      let loopCount = 0;
-
-      while (Date.now() - startTime < TIMEOUT) {
-        loopCount++;
-        console.log(
-          `🎯 FIXED LOOP ${loopCount}: Color-agnostic hierarchy building`
-        );
-
-        try {
-          // STEP 1: Find or create year block - COLOR AGNOSTIC SEARCH
-          const yearCreateContent = `#st0 [[${dateInfo.year}]] #${colorTag}`;
-          const yearSearchPattern = `#st0 [[${dateInfo.year}]]`; // 🔥 NO COLOR TAG
-
-          console.log(`🎯 YEAR SEARCH: "${yearSearchPattern}" (agnostic)`);
-          console.log(`🎯 YEAR CREATE: "${yearCreateContent}" (with color)`);
-
-          const yearBlock = findBlockWithColorAgnosticSearch(
-            journalUid,
-            yearSearchPattern
-          );
-
-          if (!yearBlock) {
-            if (workingOn.step !== "year" || workingOn.uid !== journalUid) {
-              console.log(
-                `🎯 YEAR CREATE: No existing year found, creating new`
-              );
-              workingOn.step = "year";
-              workingOn.uid = journalUid;
-              workingOn.content = yearCreateContent;
-              await createBlock(journalUid, yearCreateContent, 0);
-            }
-            continue;
-          }
-
-          console.log(
-            `🎯 YEAR ✅: Reusing existing ${yearBlock.uid} - "${yearBlock.string}"`
-          );
-
-          // STEP 2: Find or create month block - COLOR AGNOSTIC SEARCH
-          const monthCreateContent = `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`;
-          const monthSearchPattern = `#st0 [[${dateInfo.fullMonth}]]`; // 🔥 NO COLOR TAG
-
-          console.log(`🎯 MONTH SEARCH: "${monthSearchPattern}" (agnostic)`);
-          console.log(`🎯 MONTH CREATE: "${monthCreateContent}" (with color)`);
-
-          const monthBlock = findBlockWithColorAgnosticSearch(
-            yearBlock.uid,
-            monthSearchPattern
-          );
-
-          if (!monthBlock) {
-            if (workingOn.step !== "month" || workingOn.uid !== yearBlock.uid) {
-              console.log(
-                `🎯 MONTH CREATE: No existing month found, creating new`
-              );
-              workingOn.step = "month";
-              workingOn.uid = yearBlock.uid;
-              workingOn.content = monthCreateContent;
-              await createBlock(yearBlock.uid, monthCreateContent, 0);
-            }
-            continue;
-          }
-
-          console.log(
-            `🎯 MONTH ✅: Reusing existing ${monthBlock.uid} - "${monthBlock.string}"`
-          );
-
-          // STEP 3: Find or create date banner - COLOR AGNOSTIC SEARCH
-          const dateCreateContent = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`;
-          const dateSearchPattern = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`; // 🔥 NO COLOR TAG
-
-          console.log(`🎯 DATE SEARCH: "${dateSearchPattern}" (agnostic)`);
-          console.log(`🎯 DATE CREATE: "${dateCreateContent}" (with color)`);
-
-          const dateBlock = findBlockWithColorAgnosticSearch(
-            monthBlock.uid,
-            dateSearchPattern
-          );
-
-          if (!dateBlock) {
-            if (workingOn.step !== "date" || workingOn.uid !== monthBlock.uid) {
-              console.log(
-                `🎯 DATE CREATE: No existing date found, creating new`
-              );
-              workingOn.step = "date";
-              workingOn.uid = monthBlock.uid;
-              workingOn.content = dateCreateContent;
-              await createBlock(monthBlock.uid, dateCreateContent, 0);
-            }
-            continue;
-          }
-
-          console.log(
-            `🎯 DATE ✅: Reusing existing ${dateBlock.uid} - "${dateBlock.string}"`
-          );
-
-          // STEP 4: Create content block with multi-user support
-          const initialContent = multiUserMode
-            ? `#[[${userDisplayName}]] `
-            : "";
-
-          console.log(
-            `🎯 CONTENT CREATE: Adding new entry with content "${initialContent}"`
-          );
-          const newBlockUid = await createBlock(dateBlock.uid, initialContent);
-
-          console.log(
-            `🎯 ✅ FIXED SUCCESS: Created entry in ${loopCount} loops (${
-              Date.now() - startTime
-            }ms)`
-          );
-          console.log(
-            `🎯 🔄 REUSE CONFIRMED: All existing hierarchy blocks were reused successfully`
-          );
-
-          return newBlockUid;
-        } catch (error) {
-          console.error(`🎯 Loop ${loopCount} error:`, error.message);
+        // STEP 2: Get or create month block
+        const monthContent = `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`;
+        const monthSearchPattern = `#st0 [[${dateInfo.fullMonth}]]`;
+        
+        let monthBlock = findBlockWithColorAgnosticSearch(yearBlock.uid, monthSearchPattern);
+        if (!monthBlock) {
+          console.log(`🎯 Creating new month block for ${dateInfo.fullMonth}`);
+          const monthUid = await createBlock(yearBlock.uid, monthContent, 0);
+          monthBlock = { uid: monthUid, string: monthContent };
         }
-      }
 
-      throw new Error(`Timeout after ${TIMEOUT}ms (${loopCount} loops)`);
+        // STEP 3: Get or create date block
+        const dateContent = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`;
+        const dateSearchPattern = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`;
+        
+        let dateBlock = findBlockWithColorAgnosticSearch(monthBlock.uid, dateSearchPattern);
+        if (!dateBlock) {
+          console.log(`🎯 Creating new date block for ${dateInfo.fullDate}`);
+          const dateUid = await createBlock(monthBlock.uid, dateContent, 0);
+          dateBlock = { uid: dateUid, string: dateContent };
+        }
+
+        // STEP 4: Create content block
+        const initialContent = multiUserMode ? `#[[${await getCurrentUserDisplayName()}]] ` : "";
+        console.log(`🎯 Creating new entry with content "${initialContent}"`);
+        
+        const newBlockUid = await createBlock(dateBlock.uid, initialContent);
+        console.log(`🎯 ✅ Successfully created entry in ${dateInfo.fullDate}`);
+
+        return newBlockUid;
+      } catch (error) {
+        console.error("🎯 Error creating date entry:", error);
+        throw error;
+      }
     }
 
     // ==================== 1.8 🦜 UI COMPONENTS (preserved) ====================
