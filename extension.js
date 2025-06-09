@@ -775,10 +775,26 @@ export default {
           console.log("🦊 Debug: Creating subjournals dropdown");
           const subjournals = await getSubjournals();
           
+          console.log("🦊 Debug: Raw subjournals data:", subjournals);
+          console.log("🦊 Debug: subjournals type:", typeof subjournals);
+          console.log("🦊 Debug: Is Array?", Array.isArray(subjournals));
+          
           // Ensure subjournals is an array
           if (!Array.isArray(subjournals)) {
             console.error("⚠ Error: subjournals is not an array:", subjournals);
-            return null;
+            // Try to convert to array if it's a string or object
+            const convertedSubjournals = Array.isArray(subjournals) ? subjournals : 
+                                       typeof subjournals === 'string' ? [subjournals] :
+                                       typeof subjournals === 'object' ? Object.values(subjournals) : [];
+            
+            console.log("🦊 Debug: Converted subjournals:", convertedSubjournals);
+            
+            if (!convertedSubjournals.length) {
+              return null;
+            }
+            
+            // Use converted array
+            subjournals = convertedSubjournals;
           }
 
           if (!subjournals.length) {
@@ -802,39 +818,53 @@ export default {
             overflow-y: auto;
           `;
 
-          subjournals.forEach(({ name, color }) => {
-            const item = document.createElement("div");
-            item.className = "subjournals-dropdown-item";
-            item.style.cssText = `
-              padding: 8px 12px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              border-bottom: 1px solid #eee;
-            `;
+          try {
+            subjournals.forEach((subjournal, index) => {
+              console.log(`🦊 Debug: Processing subjournal ${index}:`, subjournal);
+              
+              // Handle both object and string formats
+              const name = typeof subjournal === 'object' ? subjournal.name : subjournal;
+              const color = typeof subjournal === 'object' ? subjournal.color : 'blue';
+              
+              console.log(`🦊 Debug: Extracted name: ${name}, color: ${color}`);
+              
+              const item = document.createElement("div");
+              item.className = "subjournals-dropdown-item";
+              item.style.cssText = `
+                padding: 8px 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border-bottom: 1px solid #eee;
+              `;
 
-            const colorDot = document.createElement("div");
-            colorDot.style.cssText = `
-              width: 12px;
-              height: 12px;
-              border-radius: 50%;
-              background-color: ${COLOR_MAP[color] || COLOR_MAP.blue};
-            `;
+              const colorDot = document.createElement("div");
+              colorDot.style.cssText = `
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: ${COLOR_MAP[color] || COLOR_MAP.blue};
+              `;
 
-            const nameSpan = document.createElement("span");
-            nameSpan.textContent = name;
+              const nameSpan = document.createElement("span");
+              nameSpan.textContent = name;
 
-            item.appendChild(colorDot);
-            item.appendChild(nameSpan);
-            item.addEventListener("click", () => {
-              console.log("🦊 Debug: Selected subjournal:", name);
-              createSubjournal(name, color);
-              dropdown.remove();
+              item.appendChild(colorDot);
+              item.appendChild(nameSpan);
+              item.addEventListener("click", () => {
+                console.log("🦊 Debug: Selected subjournal:", name);
+                createSubjournal(name, color);
+                dropdown.remove();
+              });
+
+              dropdown.appendChild(item);
             });
-
-            dropdown.appendChild(item);
-          });
+          } catch (forEachError) {
+            console.error("⚠ Error in forEach loop:", forEachError);
+            console.log("🦊 Debug: subjournals at error:", subjournals);
+            return null;
+          }
 
           return dropdown;
         } catch (error) {
