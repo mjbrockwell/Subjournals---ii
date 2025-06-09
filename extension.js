@@ -372,104 +372,36 @@ export default {
             return [];
           }
 
-          // Debug: Get and log the entire page structure
+          // Get the full page structure
           const pageData = window.roamAlphaAPI.pull(
             "[:block/uid :block/string {:block/children [:block/uid :block/string {:block/children [:block/uid :block/string]}]}]",
             [":block/uid", configPageUid]
           );
           console.log("🔷 Debug: Full page structure:", JSON.stringify(pageData, null, 2));
 
-          const allBlocks2 = window.roamAlphaAPI.q(`
-          [:find ?uid ?string :where 
-           [?page :block/uid "${configPageUid}"]
-           [?child :block/page ?page]
-           [?child :block/uid ?uid]
-           [?child :block/string ?string]]
-        `);
-
-          console.log("🔷 Debug: Raw blocks query result:", allBlocks2);
-
-          let allBlocks = [];
-          if (allBlocks2.length > 0) {
-            allBlocks = allBlocks2.map(([uid, string]) => {
-              console.log(`🔷 Debug: Processing block - UID: ${uid}, String: "${string}"`);
-              return [{
-                ":block/uid": uid,
-                ":block/string": string,
-                ":block/children": [],
-              }];
-            });
-          }
-
-          console.log("🔷 Debug: Processed blocks:", JSON.stringify(allBlocks, null, 2));
-
-          const mySubjournalsBlock = allBlocks.find(([block]) => {
-            const blockString = block[":block/string"] || "";
-            const isMatch = /my\s+subjournals\s*:/i.test(blockString);
-            console.log(`🔷 Debug: Checking block "${blockString}" - isMatch: ${isMatch}`);
-            return isMatch;
-          });
+          // Find the "My Subjournals:" block in the children
+          const mySubjournalsBlock = pageData[":block/children"]?.find(block => 
+            block[":block/string"]?.trim() === "My Subjournals:"
+          );
 
           if (!mySubjournalsBlock) {
             console.warn("⚠ No 'My Subjournals:' block found");
-            console.log("🔷 Debug: Available blocks that were checked:", allBlocks.map(([b]) => b[":block/string"]));
             return [];
           }
 
           console.log("🔷 Debug: Found My Subjournals block:", JSON.stringify(mySubjournalsBlock, null, 2));
 
           const subjournals = [];
-          let children = mySubjournalsBlock[0][":block/children"] || [];
-
-          if (children.length === 0) {
-            const parentUid = mySubjournalsBlock[0][":block/uid"];
-            console.log(`🔷 Debug: No children found, querying for children of block ${parentUid}`);
-            
-            const childUids = window.roamAlphaAPI.q(`
-            [:find ?uid :where 
-             [?parent :block/uid "${parentUid}"]
-             [?child :block/parents ?parent]
-             [?child :block/uid ?uid]]
-          `);
-            
-            console.log("🔷 Debug: Found child UIDs:", childUids);
-
-            children = childUids.map(([uid]) => {
-              const childData = window.roamAlphaAPI.pull(
-                "[:block/uid :block/string {:block/children [:block/uid :block/string]}]",
-                [":block/uid", uid]
-              );
-              console.log(`🔷 Debug: Child data for ${uid}:`, JSON.stringify(childData, null, 2));
-              return childData;
-            });
-          }
+          const children = mySubjournalsBlock[":block/children"] || [];
 
           console.log("🔷 Debug: Processing children:", JSON.stringify(children, null, 2));
 
           children.forEach((child, index) => {
             const name = child[":block/string"]?.trim();
-
             if (!name || /^color\s*:/i.test(name)) return;
 
             let color = "blue";
-            let colorChildren = child[":block/children"] || [];
-
-            if (colorChildren.length === 0) {
-              const childUid = child[":block/uid"];
-              const grandchildUids = window.roamAlphaAPI.q(`
-              [:find ?uid :where 
-               [?parent :block/uid "${childUid}"]
-               [?child :block/parents ?parent]
-               [?child :block/uid ?uid]]
-            `);
-
-              colorChildren = grandchildUids.map(([uid]) => {
-                return window.roamAlphaAPI.pull("[:block/uid :block/string]", [
-                  ":block/uid",
-                  uid,
-                ]);
-              });
-            }
+            const colorChildren = child[":block/children"] || [];
 
             const colorChild = colorChildren.find((grandchild) => {
               const grandchildString = grandchild[":block/string"] || "";
@@ -477,8 +409,7 @@ export default {
             });
 
             if (colorChild) {
-              const colorMatch =
-                colorChild[":block/string"].match(/color\s*:\s*(\w+)/i);
+              const colorMatch = colorChild[":block/string"].match(/color\s*:\s*(\w+)/i);
               if (colorMatch) {
                 color = colorMatch[1];
               }
