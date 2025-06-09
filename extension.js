@@ -930,21 +930,93 @@ export default {
           }
         };
 
-        const mainClickHandler = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        const mainClickHandler = async (event) => {
           try {
-            const subjournals = getSubjournals();
-            if (!subjournals || subjournals.length === 0) {
-              alert(
-                '⚠ No subjournals configured. Please set up [[roam/subjournals]] page with "My Subjournals:" block.'
-              );
+            console.log("🦊 Debug: Main click handler called");
+            const button = event.currentTarget;
+            const existingDropdown = document.querySelector(".subjournals-dropdown");
+            if (existingDropdown) {
+              existingDropdown.remove();
               return;
             }
-            createDropdown(subjournals, mainButton);
+
+            const subjournals = await getSubjournals();
+            console.log("🦊 Debug: Got subjournals:", subjournals);
+            
+            if (!Array.isArray(subjournals) || !subjournals.length) {
+              console.warn("⚠ No subjournals configured");
+              return;
+            }
+
+            const dropdown = document.createElement("div");
+            dropdown.className = "subjournals-dropdown";
+            dropdown.style.cssText = `
+              position: absolute;
+              top: 100%;
+              left: 0;
+              background: white;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              z-index: 1000;
+              min-width: 200px;
+              max-height: 300px;
+              overflow-y: auto;
+            `;
+
+            subjournals.forEach(({ name, color }) => {
+              const item = document.createElement("div");
+              item.className = "subjournals-dropdown-item";
+              item.style.cssText = `
+                padding: 8px 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border-bottom: 1px solid #eee;
+              `;
+
+              const colorDot = document.createElement("div");
+              colorDot.style.cssText = `
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: ${COLOR_MAP[color] || COLOR_MAP.blue};
+              `;
+
+              const nameSpan = document.createElement("span");
+              nameSpan.textContent = name;
+
+              item.appendChild(colorDot);
+              item.appendChild(nameSpan);
+              item.addEventListener("click", () => {
+                console.log("🦊 Debug: Selected subjournal:", name);
+                createSubjournal(name, color);
+                dropdown.remove();
+              });
+
+              dropdown.appendChild(item);
+            });
+
+            const buttonRect = button.getBoundingClientRect();
+            dropdown.style.top = `${buttonRect.bottom}px`;
+            dropdown.style.left = `${buttonRect.left}px`;
+
+            document.body.appendChild(dropdown);
+
+            // Close dropdown when clicking outside
+            const closeDropdown = (e) => {
+              if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+                dropdown.remove();
+                document.removeEventListener("click", closeDropdown);
+              }
+            };
+
+            setTimeout(() => {
+              document.addEventListener("click", closeDropdown);
+            }, 0);
           } catch (error) {
             console.error("❌ Error in main click handler:", error);
-            alert(`❌ Error creating dropdown: ${error.message}`);
           }
         };
 
