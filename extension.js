@@ -355,7 +355,7 @@ export default {
       /**
        * 1.5.1 🦊 Get subjournals configuration from Roam
        */
-      function getSubjournals() {
+      async function getSubjournals() {
         try {
           console.log("🦊 Debug: getSubjournals() called");
 
@@ -367,8 +367,25 @@ export default {
 
           console.log("🔷 Debug: configPageUid =", configPageUid);
 
+          // Self-healing: Create config page if it doesn't exist
           if (!configPageUid) {
-            console.warn("⚠ No [[roam/subjournals]] page found");
+            console.log("🔄 Self-healing: Creating [[roam/subjournals]] page");
+            const newPageUid = await getOrCreatePageUid("roam/subjournals");
+            
+            // Create the instruction block
+            await createBlock(newPageUid, 
+              "List your personal subjournals indented under the block titled \"My Subjournals:\". You can indent a color choice below each one. Allowable colors are red, orange, yellow, green, blue, purple, brown, grey, white or black. #clr-lgt-orn-act"
+            );
+            
+            // Create the My Subjournals block
+            await createBlock(newPageUid, "My Subjournals:");
+            
+            // Navigate to the new page
+            window.roamAlphaAPI.ui.mainWindow.openPage({
+              page: { title: "roam/subjournals" },
+            });
+            
+            alert("🔄 Created [[roam/subjournals]] page. Please add your subjournals under the 'My Subjournals:' block.");
             return [];
           }
 
@@ -384,8 +401,17 @@ export default {
             block[":block/string"]?.trim() === "My Subjournals:"
           );
 
+          // Self-healing: Create My Subjournals block if it doesn't exist
           if (!mySubjournalsBlock) {
-            console.warn("⚠ No 'My Subjournals:' block found");
+            console.log("🔄 Self-healing: Creating 'My Subjournals:' block");
+            const newBlockUid = await createBlock(configPageUid, "My Subjournals:");
+            
+            // Navigate to the config page
+            window.roamAlphaAPI.ui.mainWindow.openPage({
+              page: { title: "roam/subjournals" },
+            });
+            
+            alert("🔄 Created 'My Subjournals:' block. Please add your subjournals as children of this block.");
             return [];
           }
 
@@ -395,6 +421,16 @@ export default {
           const children = mySubjournalsBlock[":block/children"] || [];
 
           console.log("🔷 Debug: Processing children:", JSON.stringify(children, null, 2));
+
+          // Self-healing: Check for valid subjournals
+          if (children.length === 0) {
+            console.log("🔄 Self-healing: No subjournals found");
+            window.roamAlphaAPI.ui.mainWindow.openPage({
+              page: { title: "roam/subjournals" },
+            });
+            alert("🔄 No subjournals found. Please add your subjournals as children of the 'My Subjournals:' block.");
+            return [];
+          }
 
           children.forEach((child, index) => {
             const name = child[":block/string"]?.trim();
@@ -416,6 +452,14 @@ export default {
             }
 
             subjournals.push({ name, color });
+          });
+
+          // Self-healing: Check for valid color settings
+          subjournals.forEach(({ name, color }) => {
+            if (!COLOR_MAP[color]) {
+              console.log(`🔄 Self-healing: Invalid color '${color}' for subjournal '${name}', using default blue`);
+              color = "blue";
+            }
           });
 
           console.log("🦊 Debug: Final subjournals array:", subjournals);
