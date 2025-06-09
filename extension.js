@@ -355,7 +355,7 @@ export default {
       /**
        * 1.5.1 🦊 Get subjournals configuration from Roam
        */
-      async function getSubjournals() {
+      function getSubjournals() {
         try {
           console.log("🦊 Debug: getSubjournals() called");
 
@@ -367,99 +367,54 @@ export default {
 
           console.log("🔷 Debug: configPageUid =", configPageUid);
 
-          // Self-healing: Create config page if it doesn't exist
           if (!configPageUid) {
-            console.log("🔄 Self-healing: Creating [[roam/subjournals]] page");
-            const newPageUid = await getOrCreatePageUid("roam/subjournals");
-            
-            // Create the instruction block
-            await createBlock(newPageUid, 
-              "List your personal subjournals indented under the block titled \"My Subjournals:\". You can indent a color choice below each one. Allowable colors are red, orange, yellow, green, blue, purple, brown, grey, white or black. #clr-lgt-orn-act"
-            );
-            
-            // Create the My Subjournals block
-            await createBlock(newPageUid, "My Subjournals:");
-            
-            // Navigate to the new page
-            window.roamAlphaAPI.ui.mainWindow.openPage({
-              page: { title: "roam/subjournals" },
-            });
-            
-            alert("🔄 Created [[roam/subjournals]] page. Please add your subjournals under the 'My Subjournals:' block.");
+            console.warn("⚠ No [[roam/subjournals]] page found");
             return [];
           }
 
-          // Get the full page structure
-          const pageData = window.roamAlphaAPI.pull(
-            "[:block/uid :block/string {:block/children [:block/uid :block/string {:block/children [:block/uid :block/string]}]}]",
-            [":block/uid", configPageUid]
-          );
-          console.log("🔷 Debug: Full page structure:", JSON.stringify(pageData, null, 2));
+          const blocks = window.roamAlphaAPI.q(`
+          [:find ?block ?string
+           :where
+           [?e :node/title "roam/subjournals"]
+           [?e :block/children ?block]
+           [?block :block/string ?string]]
+        `);
 
-          // Find the "My Subjournals:" block in the children
-          const mySubjournalsBlock = pageData[":block/children"]?.find(block => 
-            block[":block/string"]?.trim() === "My Subjournals:"
+          console.log("🔷 Debug: All blocks on config page:", blocks);
+
+          const mySubjournalsBlock = blocks.find(([_, string]) =>
+            string.toLowerCase().includes("my subjournals:")
           );
 
-          // Self-healing: Create My Subjournals block if it doesn't exist
           if (!mySubjournalsBlock) {
-            console.log("🔄 Self-healing: Creating 'My Subjournals:' block");
-            const newBlockUid = await createBlock(configPageUid, "My Subjournals:");
-            
-            // Navigate to the config page
-            window.roamAlphaAPI.ui.mainWindow.openPage({
-              page: { title: "roam/subjournals" },
-            });
-            
-            alert("🔄 Created 'My Subjournals:' block. Please add your subjournals as children of this block.");
+            console.warn("⚠ No 'My Subjournals:' block found");
             return [];
           }
 
-          console.log("🔷 Debug: Found My Subjournals block:", JSON.stringify(mySubjournalsBlock, null, 2));
+          const mySubjournalsUid = mySubjournalsBlock[0];
+          console.log("🔷 Debug: Found My Subjournals block UID:", mySubjournalsUid);
+
+          const childBlocks = window.roamAlphaAPI.q(`
+          [:find ?block ?string
+           :where
+           [?parent :block/uid "${mySubjournalsUid}"]
+           [?parent :block/children ?block]
+           [?block :block/string ?string]]
+        `);
+
+          console.log("🔷 Debug: Child blocks:", childBlocks);
 
           const subjournals = [];
-          const children = mySubjournalsBlock[":block/children"] || [];
+          childBlocks.forEach(([_, string]) => {
+            if (string.toLowerCase().includes("color:")) return;
 
-          console.log("🔷 Debug: Processing children:", JSON.stringify(children, null, 2));
+            const colorMatch = string.match(/color\s*:\s*(\w+)/i);
+            const color = colorMatch ? colorMatch[1] : "blue";
 
-          // Self-healing: Check for valid subjournals
-          if (children.length === 0) {
-            console.log("🔄 Self-healing: No subjournals found");
-            window.roamAlphaAPI.ui.mainWindow.openPage({
-              page: { title: "roam/subjournals" },
+            subjournals.push({
+              name: string.trim(),
+              color: color.toLowerCase(),
             });
-            alert("🔄 No subjournals found. Please add your subjournals as children of the 'My Subjournals:' block.");
-            return [];
-          }
-
-          children.forEach((child, index) => {
-            const name = child[":block/string"]?.trim();
-            if (!name || /^color\s*:/i.test(name)) return;
-
-            let color = "blue";
-            const colorChildren = child[":block/children"] || [];
-
-            const colorChild = colorChildren.find((grandchild) => {
-              const grandchildString = grandchild[":block/string"] || "";
-              return /color\s*:/i.test(grandchildString);
-            });
-
-            if (colorChild) {
-              const colorMatch = colorChild[":block/string"].match(/color\s*:\s*(\w+)/i);
-              if (colorMatch) {
-                color = colorMatch[1];
-              }
-            }
-
-            subjournals.push({ name, color });
-          });
-
-          // Self-healing: Check for valid color settings
-          subjournals.forEach(({ name, color }) => {
-            if (!COLOR_MAP[color]) {
-              console.log(`🔄 Self-healing: Invalid color '${color}' for subjournal '${name}', using default blue`);
-              color = "blue";
-            }
           });
 
           console.log("🦊 Debug: Final subjournals array:", subjournals);
@@ -812,107 +767,89 @@ export default {
       /**
        * 1.6.2 🦜 Create dropdown menu for subjournals
        */
-      async function createSubjournalsDropdown() {
-        try {
-          console.log("🦊 Debug: Creating subjournals dropdown");
-          const subjournals = await getSubjournals();
-          
-          console.log("🦊 Debug: Raw subjournals data:", subjournals);
-          console.log("🦊 Debug: subjournals type:", typeof subjournals);
-          console.log("🦊 Debug: Is Array?", Array.isArray(subjournals));
-          
-          // Ensure subjournals is an array
-          if (!Array.isArray(subjournals)) {
-            console.error("⚠ Error: subjournals is not an array:", subjournals);
-            // Try to convert to array if it's a string or object
-            const convertedSubjournals = Array.isArray(subjournals) ? subjournals : 
-                                       typeof subjournals === 'string' ? [subjournals] :
-                                       typeof subjournals === 'object' ? Object.values(subjournals) : [];
-            
-            console.log("🦊 Debug: Converted subjournals:", convertedSubjournals);
-            
-            if (!convertedSubjournals.length) {
-              return null;
-            }
-            
-            // Use converted array
-            subjournals = convertedSubjournals;
-          }
+      function createDropdown(subjournals, mainButton) {
+        console.log("🦜 createDropdown called with:", subjournals);
 
-          if (!subjournals.length) {
-            console.warn("⚠ No subjournals configured");
-            return null;
-          }
-
-          const dropdown = document.createElement("div");
-          dropdown.className = "subjournals-dropdown";
-          dropdown.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 1000;
-            min-width: 200px;
-            max-height: 300px;
-            overflow-y: auto;
-          `;
-
-          try {
-            subjournals.forEach((subjournal, index) => {
-              console.log(`🦊 Debug: Processing subjournal ${index}:`, subjournal);
-              
-              // Handle both object and string formats
-              const name = typeof subjournal === 'object' ? subjournal.name : subjournal;
-              const color = typeof subjournal === 'object' ? subjournal.color : 'blue';
-              
-              console.log(`🦊 Debug: Extracted name: ${name}, color: ${color}`);
-              
-              const item = document.createElement("div");
-              item.className = "subjournals-dropdown-item";
-              item.style.cssText = `
-                padding: 8px 12px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                border-bottom: 1px solid #eee;
-              `;
-
-              const colorDot = document.createElement("div");
-              colorDot.style.cssText = `
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background-color: ${COLOR_MAP[color] || COLOR_MAP.blue};
-              `;
-
-              const nameSpan = document.createElement("span");
-              nameSpan.textContent = name;
-
-              item.appendChild(colorDot);
-              item.appendChild(nameSpan);
-              item.addEventListener("click", () => {
-                console.log("🦊 Debug: Selected subjournal:", name);
-                createSubjournal(name, color);
-                dropdown.remove();
-              });
-
-              dropdown.appendChild(item);
-            });
-          } catch (forEachError) {
-            console.error("⚠ Error in forEach loop:", forEachError);
-            console.log("🦊 Debug: subjournals at error:", subjournals);
-            return null;
-          }
-
-          return dropdown;
-        } catch (error) {
-          console.error("⚠ Error creating dropdown:", error);
-          return null;
+        const existingDropdown = document.querySelector(".subjournals-dropdown");
+        if (existingDropdown) {
+          existingDropdown.remove();
         }
+
+        if (subjournals.length === 0) {
+          alert(
+            '⚠ No subjournals configured. Please set up [[roam/subjournals]] page with "My Subjournals:" block.'
+          );
+          return;
+        }
+
+        const dropdown = document.createElement("div");
+        dropdown.className = "subjournals-dropdown";
+
+        subjournals.forEach(({ name, color }) => {
+          const option = document.createElement("div");
+          option.className = "subjournals-option";
+          option.textContent = name;
+
+          const colorMap = {
+            red: "#e74c3c",
+            orange: "#e67e22",
+            yellow: "#f1c40f",
+            green: "#27ae60",
+            blue: "#3498db",
+            purple: "#9b59b6",
+            brown: "#8b4513",
+            grey: "#95a5a6",
+            white: "#ecf0f1",
+            black: "#2c3e50",
+          };
+
+          const optionColor = colorMap[color] || "#333";
+          option.style.color = optionColor;
+          option.setAttribute("data-color", color);
+
+          option.addEventListener("click", (e) => {
+            console.log(`🐇 Option "${name}" clicked!`);
+            e.stopPropagation();
+            dropdown.remove();
+            handleSubjournalSelection(name, color);
+          });
+
+          dropdown.appendChild(option);
+        });
+
+        const buttonContainer = mainButton.parentElement;
+        const parentContainer = buttonContainer.parentElement;
+
+        const buttonContainerRect = buttonContainer.getBoundingClientRect();
+        const parentContainerRect = parentContainer.getBoundingClientRect();
+
+        const relativeTop = buttonContainerRect.bottom - parentContainerRect.top;
+        const relativeLeft = buttonContainerRect.left - parentContainerRect.left;
+
+        dropdown.style.position = "absolute";
+        dropdown.style.top = relativeTop + "px";
+        dropdown.style.left = relativeLeft + "px";
+        dropdown.style.zIndex = "9999";
+        dropdown.style.minWidth = buttonContainerRect.width + "px";
+        dropdown.style.maxWidth = "300px";
+        dropdown.style.backgroundColor = "white";
+        dropdown.style.border = "1.5px solid #8B4513";
+
+        parentContainer.appendChild(dropdown);
+
+        const closeDropdown = (e) => {
+          if (
+            !dropdown.contains(e.target) &&
+            !buttonContainer.contains(e.target)
+          ) {
+            dropdown.remove();
+            document.removeEventListener("click", closeDropdown);
+          }
+        };
+
+        setTimeout(() => {
+          document.addEventListener("click", closeDropdown);
+        }, 0);
       }
 
       /**
@@ -972,93 +909,21 @@ export default {
           }
         };
 
-        const mainClickHandler = async (event) => {
+        const mainClickHandler = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           try {
-            console.log("🦊 Debug: Main click handler called");
-            const button = event.currentTarget;
-            const existingDropdown = document.querySelector(".subjournals-dropdown");
-            if (existingDropdown) {
-              existingDropdown.remove();
+            const subjournals = getSubjournals();
+            if (!subjournals || subjournals.length === 0) {
+              alert(
+                '⚠ No subjournals configured. Please set up [[roam/subjournals]] page with "My Subjournals:" block.'
+              );
               return;
             }
-
-            const subjournals = await getSubjournals();
-            console.log("🦊 Debug: Got subjournals:", subjournals);
-            
-            if (!Array.isArray(subjournals) || !subjournals.length) {
-              console.warn("⚠ No subjournals configured");
-              return;
-            }
-
-            const dropdown = document.createElement("div");
-            dropdown.className = "subjournals-dropdown";
-            dropdown.style.cssText = `
-              position: absolute;
-              top: 100%;
-              left: 0;
-              background: white;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              z-index: 1000;
-              min-width: 200px;
-              max-height: 300px;
-              overflow-y: auto;
-            `;
-
-            subjournals.forEach(({ name, color }) => {
-              const item = document.createElement("div");
-              item.className = "subjournals-dropdown-item";
-              item.style.cssText = `
-                padding: 8px 12px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                border-bottom: 1px solid #eee;
-              `;
-
-              const colorDot = document.createElement("div");
-              colorDot.style.cssText = `
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background-color: ${COLOR_MAP[color] || COLOR_MAP.blue};
-              `;
-
-              const nameSpan = document.createElement("span");
-              nameSpan.textContent = name;
-
-              item.appendChild(colorDot);
-              item.appendChild(nameSpan);
-              item.addEventListener("click", () => {
-                console.log("🦊 Debug: Selected subjournal:", name);
-                createSubjournal(name, color);
-                dropdown.remove();
-              });
-
-              dropdown.appendChild(item);
-            });
-
-            const buttonRect = button.getBoundingClientRect();
-            dropdown.style.top = `${buttonRect.bottom}px`;
-            dropdown.style.left = `${buttonRect.left}px`;
-
-            document.body.appendChild(dropdown);
-
-            // Close dropdown when clicking outside
-            const closeDropdown = (e) => {
-              if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-                dropdown.remove();
-                document.removeEventListener("click", closeDropdown);
-              }
-            };
-
-            setTimeout(() => {
-              document.addEventListener("click", closeDropdown);
-            }, 0);
+            createDropdown(subjournals, mainButton);
           } catch (error) {
             console.error("❌ Error in main click handler:", error);
+            alert(`❌ Error creating dropdown: ${error.message}`);
           }
         };
 
