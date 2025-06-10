@@ -1,0 +1,1263 @@
+/* Here is the CSS code to create sticky headers, h/t Erik Newhard and RBC */
+
+.roam-block-container[data-page-links*="st0"] > .rm-block-main {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  padding-top: 4px;
+  padding-bottom: 2px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.034), 0 1px 1px rgba(0, 0, 0, 0.048),
+    0 12.5px 10px rgba(0, 0, 0, 0.06), 0 12.3px 7.9px rgba(0, 0, 0, 0.072),
+    0 7.8px 10.4px rgba(0, 0, 0, 0.086), 0 5px 120px rgba(0, 0, 0, 0.12);
+}
+
+span.rm-page-ref[data-tag="st0"] {
+  display: none;
+}
+
+/* Here is the CSS code for a full set of color tags, h/t Cato Minor */
+
+/* 
+ * 1.0 Roam Research Color Tag Protocol System
+ * Updated with bold color variants and optimized tag selectors - 4.27.25 version with 'focus mode' and '-act' accent added
+ * =============================================================================
+ */
+
+/* 
+ * 1.1 CSS Variables for Colors and Styling 
+ * Define all color variants, borders, text colors, accent colors, and common styling properties
+ */
+:root {
+  /* 1.1.1 Common styling properties */
+  --block-margin: 5px;
+  --border-radius: 4px;
+  --border-thickness: 1px;
+  --accent-thickness: 6px; /* ← EASILY ADJUSTABLE: Change this value for thicker/thinner accents */
+  --accent-radius: 4px; /* ← ACCENT CORNER RADIUS: Set to 0 for sharp corners */
+
+  /* 1.1.2 Blue variants */
+  --color-blu: #cce5ff;
+  --border-blu: #b8daff;
+  --text-color-blu: #000000;
+  --accent-blu: #0056cc; /* Darker blue for accent */
+
+  --color-lgt-blu: #eef6ff;
+  --border-lgt-blu: #98bce3;
+  --text-color-lgt-blu: #000000;
+  --accent-lgt-blu: #6699cc; /* Darker light blue for accent */
+
+  --color-bld-blu: #0066ff; /* Bold royal blue */
+  --border-bld-blu: #0044cc;
+  --text-color-bld-blu: #fff8e1; /* Pale yellow text */
+  --accent-bld-blu: #b3d9ff; /* LIGHT PASTEL blue for maximum pop */
+
+  /* 1.1.3 Red variants */
+  --color-red: rgb(249, 201, 201);
+  --border-red: #f5c6cb;
+  --text-color-red: #000000;
+  --accent-red: #cc6666; /* Darker red for accent */
+
+  --color-lgt-red: #fff4f4;
+  --border-lgt-red: #e91e63;
+  --text-color-lgt-red: #000000;
+  --accent-lgt-red: #b71c1c; /* Darker light red for accent */
+
+  --color-bld-red: #ff0000; /* Fire engine red */
+  --border-bld-red: #cc0000;
+  --text-color-bld-red: #f8f0f0; /* Soft pearl with pink undertone */
+  --accent-bld-red: #ffb3b3; /* LIGHT PASTEL pink for maximum pop */
+
+  /* 1.1.4 Green variants */
+  --color-grn: #d4edda;
+  --border-grn: #c3e6cb;
+  --text-color-grn: #000000;
+  --accent-grn: #66a366; /* Darker green for accent */
+
+  --color-lgt-grn: #f7fff9;
+  --border-lgt-grn: #89d79a;
+  --text-color-lgt-grn: #000000;
+  --accent-lgt-grn: #4a7c59; /* Darker light green for accent */
+
+  --color-bld-grn: #00aa44; /* Lush green */
+  --border-bld-grn: #008833;
+  --text-color-bld-grn: #e0ffe0; /* Pale mint */
+  --accent-bld-grn: #b3ffb3; /* LIGHT PASTEL mint for maximum pop */
+
+  /* 1.1.5 Yellow variants */
+  --color-ylo: #fff3cd;
+  --border-ylo: #ffeeba;
+  --text-color-ylo: #000000;
+  --accent-ylo: #b8860b; /* Dark goldenrod for accent */
+
+  --color-lgt-ylo: #fffdee;
+  --border-lgt-ylo: #ffeeba;
+  --text-color-lgt-ylo: #000000;
+  --accent-lgt-ylo: #daa520; /* Goldenrod for light yellow accent */
+
+  --color-bld-ylo: #ffdd00; /* Daffodil yellow */
+  --border-bld-ylo: #e6c700;
+  --text-color-bld-ylo: #0d47a1; /* Deep blue */
+  --accent-bld-ylo: #fff5b3; /* LIGHT PASTEL cream for maximum pop */
+
+  /* 1.1.6 Orange variants */
+  --color-orn: #ffdabc;
+  --border-orn: #ffeeba;
+  --text-color-orn: #000000;
+  --accent-orn: #cc7722; /* Darker orange for accent */
+
+  --color-lgt-orn: #feeddc; /* Light pastel orange */
+  --border-lgt-orn: #ffad66;
+  --text-color-lgt-orn: #000000;
+  --accent-lgt-orn: #e65100; /* Darker light orange for accent */
+
+  --color-bld-orn: #ff7700; /* Vibrant orange */
+  --border-bld-orn: #e56a00;
+  --text-color-bld-orn: #ffffff; /* Pure white text */
+  --accent-bld-orn: #ffd6b3; /* LIGHT PASTEL peach for maximum pop */
+
+  /* 1.1.7 Brown variants */
+  --color-brn: #e8d6cf;
+  --border-brn: #ffeeba;
+  --text-color-brn: #000000;
+  --accent-brn: #8d6e63; /* Darker brown for accent */
+
+  --color-lgt-brn: #f7ece7;
+  --border-lgt-brn: #795548;
+  --text-color-lgt-brn: #000000;
+  --accent-lgt-brn: #5d4037; /* Darker light brown for accent */
+
+  --color-bld-brn: #8b4513; /* Rich saddle brown */
+  --border-bld-brn: #5d2e0d;
+  --text-color-bld-brn: #fff8e1; /* Pale yellow text */
+  --accent-bld-brn: #e6c2a6; /* LIGHT PASTEL tan for maximum pop */
+
+  /* 1.1.8 Purple variants */
+  --color-ppl: #e8c4ff;
+  --border-ppl: #80488a;
+  --text-color-ppl: #000000;
+  --accent-ppl: #7b1fa2; /* Darker purple for accent */
+
+  --color-lgt-ppl: #f8edff;
+  --border-lgt-ppl: #cb89d7;
+  --text-color-lgt-ppl: #000000;
+  --accent-lgt-ppl: #8e24aa; /* Darker light purple for accent */
+
+  --color-bld-ppl: #8800ff; /* Royal purple */
+  --border-bld-ppl: #6600cc;
+  --text-color-bld-ppl: #fff8e1; /* Pale yellow text */
+  --accent-bld-ppl: #e6b3ff; /* LIGHT PASTEL lavender for maximum pop */
+
+  /* 1.1.9 Grey variants */
+  --color-gry: #d9dbe1;
+  --border-gry: #507384;
+  --text-color-gry: #000000;
+  --accent-gry: #616161; /* Darker grey for accent */
+
+  --color-lgt-gry: #f5f6f8; /* Light pastel grey */
+  --border-lgt-gry: #9da5b4;
+  --text-color-lgt-gry: #000000;
+  --accent-lgt-gry: #757575; /* Darker light grey for accent */
+
+  --color-bld-gry: #555555; /* Bold charcoal grey */
+  --border-bld-gry: #333333;
+  --text-color-bld-gry: #fff8e1; /* Pale yellow text */
+  --accent-bld-gry: #d9d9d9; /* LIGHT PASTEL silver for maximum pop */
+
+  /* 1.1.10 Black and white colors */
+  --color-blk: #000000; /* True black */
+  --border-blk: #feffca;
+  --text-color-blk: #ffffff; /* White text on black background */
+  --accent-blk: #424242; /* Dark grey for black accent */
+
+  --color-wht: #ffffff;
+  --border-wht: #e0e0e0;
+  --text-color-wht: #000000;
+  --accent-wht: #757575; /* Medium grey for white accent */
+}
+
+/* 
+ * 1.2 ACCENT ALIGNMENT COMPENSATION
+ * Compensate for accent border thickness to prevent false indentation
+ */
+
+/* Apply to all accent variants to prevent false indent */
+[data-page-links*="-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  margin-left: calc(-1 * var(--accent-thickness)) !important;
+  padding-left: 0px !important;
+  box-sizing: border-box !important;
+}
+
+/* Also apply to bad accent variants */
+[data-page-links*="clr-bad-"][data-page-links*="-act"]:not(
+    .rm-block-input-focused
+  )
+  > .rm-block-main {
+  margin-left: calc(-1 * var(--accent-thickness)) !important;
+  padding-left: 0px !important;
+  box-sizing: border-box !important;
+}
+
+/* Apply box-sizing to all color blocks so borders don't increase block footprint */
+[data-page-links*="clr-"] > .rm-block-main,
+[data-page-links*="clr-bad-"] {
+  box-sizing: border-box;
+}
+
+/* 
+ * 2.0 Standard Color Implementations 
+ * Rules for all color variants (standard, light, bold)
+ * Added :not(.rm-block-input-focused) to prevent styling on focused elements
+ */
+
+/* 2.1 Grey blocks */
+/* 2.1.1 Standard grey (clr-gry) */
+
+[data-page-links*="clr-gry"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-gry);
+  border: solid var(--border-thickness) var(--border-gry);
+  color: var(--text-color-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-gry"]:not(.rm-block-input-focused) {
+  background-color: var(--color-gry);
+  border: solid var(--border-thickness) var(--border-gry);
+  color: var(--text-color-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.1.2 Light grey (clr-lgt-gry) */
+[data-page-links*="clr-lgt-gry"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-gry);
+  border: solid var(--border-thickness) var(--border-lgt-gry);
+  color: var(--text-color-lgt-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-gry"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-gry);
+  border: solid var(--border-thickness) var(--border-lgt-gry);
+  color: var(--text-color-lgt-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.1.3 Bold grey (clr-bld-gry) */
+[data-page-links*="clr-bld-gry"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-gry);
+  border: solid var(--border-thickness) var(--border-bld-gry);
+  color: var(--text-color-bld-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-gry"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-gry);
+  border: solid var(--border-thickness) var(--border-bld-gry);
+  color: var(--text-color-bld-gry);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-gry"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.2 Blue blocks */
+/* 2.2.1 Standard blue (clr-blu) */
+[data-page-links*="clr-blu"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-blu);
+  border: solid var(--border-thickness) var(--border-blu);
+  color: var(--text-color-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-blu"]:not(.rm-block-input-focused) {
+  background-color: var(--color-blu);
+  border: solid var(--border-thickness) var(--border-blu);
+  color: var(--text-color-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.2.2 Light blue (clr-lgt-blu) */
+[data-page-links*="clr-lgt-blu"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-blu);
+  border: solid var(--border-thickness) var(--border-lgt-blu);
+  color: var(--text-color-lgt-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-blu"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-blu);
+  border: solid var(--border-thickness) var(--border-lgt-blu);
+  color: var(--text-color-lgt-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.2.3 Bold blue (clr-bld-blu) */
+[data-page-links*="clr-bld-blu"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-blu);
+  border: solid var(--border-thickness) var(--border-bld-blu);
+  color: var(--text-color-bld-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-blu"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-blu);
+  border: solid var(--border-thickness) var(--border-bld-blu);
+  color: var(--text-color-bld-blu);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-blu"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.3 Red blocks */
+/* 2.3.1 Standard red (clr-red) */
+[data-page-links*="clr-red"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-red);
+  border: solid var(--border-thickness) var(--border-red);
+  color: var(--text-color-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-red"]:not(.rm-block-input-focused) {
+  background-color: var(--color-red);
+  border: solid var(--border-thickness) var(--border-red);
+  color: var(--text-color-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.3.2 Light red (clr-lgt-red) */
+[data-page-links*="clr-lgt-red"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-red);
+  border: solid var(--border-thickness) var(--border-lgt-red);
+  color: var(--text-color-lgt-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-red"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-red);
+  border: solid var(--border-thickness) var(--border-lgt-red);
+  color: var(--text-color-lgt-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.3.3 Bold red (clr-bld-red) */
+[data-page-links*="clr-bld-red"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-red);
+  border: solid var(--border-thickness) var(--border-bld-red);
+  color: var(--text-color-bld-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-red"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-red);
+  border: solid var(--border-thickness) var(--border-bld-red);
+  color: var(--text-color-bld-red);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-red"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.4 Green blocks */
+/* 2.4.1 Standard green (clr-grn) */
+[data-page-links*="clr-grn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-grn);
+  border: solid var(--border-thickness) var(--border-grn);
+  color: var(--text-color-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-grn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-grn);
+  border: solid var(--border-thickness) var(--border-grn);
+  color: var(--text-color-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.4.2 Light green (clr-lgt-grn) */
+[data-page-links*="clr-lgt-grn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-grn);
+  border: solid var(--border-thickness) var(--border-lgt-grn);
+  color: var(--text-color-lgt-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-grn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-grn);
+  border: solid var(--border-thickness) var(--border-lgt-grn);
+  color: var(--text-color-lgt-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.4.3 Bold green (clr-bld-grn) */
+[data-page-links*="clr-bld-grn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-grn);
+  border: solid var(--border-thickness) var(--border-bld-grn);
+  color: var(--text-color-bld-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-grn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-grn);
+  border: solid var(--border-thickness) var(--border-bld-grn);
+  color: var(--text-color-bld-grn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-grn"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.5 Yellow blocks - UPDATED TO MATCH CONSISTENT PATTERN */
+/* 2.5.1 Standard yellow (clr-ylo) */
+[data-page-links*="clr-ylo"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-ylo);
+  border: solid var(--border-thickness) var(--border-ylo);
+  color: var(--text-color-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-ylo"]:not(.rm-block-input-focused) {
+  background-color: var(--color-ylo);
+  border: solid var(--border-thickness) var(--border-ylo);
+  color: var(--text-color-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.5.2 Light yellow (clr-lgt-ylo) */
+[data-page-links*="clr-lgt-ylo"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-ylo);
+  border: solid var(--border-thickness) var(--border-lgt-ylo);
+  color: var(--text-color-lgt-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-ylo"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-ylo);
+  border: solid var(--border-thickness) var(--border-lgt-ylo);
+  color: var(--text-color-lgt-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.5.3 Bold yellow (clr-bld-ylo) */
+[data-page-links*="clr-bld-ylo"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-ylo);
+  border: solid var(--border-thickness) var(--border-bld-ylo);
+  color: var(--text-color-bld-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-ylo"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-ylo);
+  border: solid var(--border-thickness) var(--border-bld-ylo);
+  color: var(--text-color-bld-ylo);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-ylo"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.6 Orange blocks */
+/* 2.6.1 Standard orange (clr-orn) */
+[data-page-links*="clr-orn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-orn);
+  border: solid var(--border-thickness) var(--border-orn);
+  color: var(--text-color-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-orn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-orn);
+  border: solid var(--border-thickness) var(--border-orn);
+  color: var(--text-color-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.6.2 Light orange (clr-lgt-orn) */
+[data-page-links*="clr-lgt-orn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-orn);
+  border: solid var(--border-thickness) var(--border-lgt-orn);
+  color: var(--text-color-lgt-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-orn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-orn);
+  border: solid var(--border-thickness) var(--border-lgt-orn);
+  color: var(--text-color-lgt-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.6.3 Bold orange (clr-bld-orn) */
+[data-page-links*="clr-bld-orn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-orn);
+  border: solid var(--border-thickness) var(--border-bld-orn);
+  color: var(--text-color-bld-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+  text-shadow: 1px 1px 2px rgba(229, 106, 0, 0.6); /* Orange shadow for white text */
+}
+
+[data-page-links*="clr-bad-bld-orn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-orn);
+  border: solid var(--border-thickness) var(--border-bld-orn);
+  color: var(--text-color-bld-orn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold and shadow ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-orn"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+  text-shadow: 1px 1px 2px rgba(229, 106, 0, 0.6); /* Orange shadow for white text */
+}
+
+/* 2.7 Brown blocks */
+/* 2.7.1 Standard brown (clr-brn) */
+[data-page-links*="clr-brn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-brn);
+  border: solid var(--border-thickness) var(--border-brn);
+  color: var(--text-color-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-brn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-brn);
+  border: solid var(--border-thickness) var(--border-brn);
+  color: var(--text-color-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.7.2 Light brown (clr-lgt-brn) */
+[data-page-links*="clr-lgt-brn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-brn);
+  border: solid var(--border-thickness) var(--border-lgt-brn);
+  color: var(--text-color-lgt-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-brn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-brn);
+  border: solid var(--border-thickness) var(--border-lgt-brn);
+  color: var(--text-color-lgt-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.7.3 Bold brown (clr-bld-brn) */
+[data-page-links*="clr-bld-brn"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-brn);
+  border: solid var(--border-thickness) var(--border-bld-brn);
+  color: var(--text-color-bld-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-brn"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-brn);
+  border: solid var(--border-thickness) var(--border-bld-brn);
+  color: var(--text-color-bld-brn);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-brn"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.8 Purple blocks */
+/* 2.8.1 Standard purple (clr-ppl) */
+[data-page-links*="clr-ppl"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-ppl);
+  border: solid var(--border-thickness) var(--border-ppl);
+  color: var(--text-color-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-ppl"]:not(.rm-block-input-focused) {
+  background-color: var(--color-ppl);
+  border: solid var(--border-thickness) var(--border-ppl);
+  color: var(--text-color-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.8.2 Light purple (clr-lgt-ppl) */
+[data-page-links*="clr-lgt-ppl"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-lgt-ppl);
+  border: solid var(--border-thickness) var(--border-lgt-ppl);
+  color: var(--text-color-lgt-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-lgt-ppl"]:not(.rm-block-input-focused) {
+  background-color: var(--color-lgt-ppl);
+  border: solid var(--border-thickness) var(--border-lgt-ppl);
+  color: var(--text-color-lgt-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.8.3 Bold purple (clr-bld-ppl) */
+[data-page-links*="clr-bld-ppl"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-bld-ppl);
+  border: solid var(--border-thickness) var(--border-bld-ppl);
+  color: var(--text-color-bld-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-ppl"]:not(.rm-block-input-focused) {
+  background-color: var(--color-bld-ppl);
+  border: solid var(--border-thickness) var(--border-bld-ppl);
+  color: var(--text-color-bld-ppl);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-ppl"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.10 Black blocks variants */
+/* 2.10.1 Standard black (clr-blk) */
+[data-page-links*="clr-blk"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-blk);
+  border: solid var(--border-thickness) var(--border-blk);
+  color: var(--text-color-blk);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-blk"]:not(.rm-block-input-focused) {
+  background-color: var(--color-blk);
+  border: solid var(--border-thickness) var(--border-blk);
+  color: var(--text-color-blk);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.10.2 Bold black (clr-bld-blk) - same color but with semi-bold text */
+[data-page-links*="clr-bld-blk"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-blk);
+  border: solid var(--border-thickness) var(--border-blk);
+  color: var(--text-color-blk);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-blk"]:not(.rm-block-input-focused) {
+  background-color: var(--color-blk);
+  border: solid var(--border-thickness) var(--border-blk);
+  color: var(--text-color-blk);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-blk"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 2.11 White blocks variants */
+/* 2.11.1 Standard white (clr-wht) */
+[data-page-links*="clr-wht"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-wht);
+  border: solid var(--border-thickness) var(--border-wht);
+  color: var(--text-color-wht);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+[data-page-links*="clr-bad-wht"]:not(.rm-block-input-focused) {
+  background-color: var(--color-wht);
+  border: solid var(--border-thickness) var(--border-wht);
+  color: var(--text-color-wht);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* 2.11.2 Bold white (clr-bld-wht) - same color but with semi-bold text */
+[data-page-links*="clr-bld-wht"]:not(.rm-block-input-focused) > .rm-block-main {
+  background-color: var(--color-wht);
+  border: solid var(--border-thickness) var(--border-wht);
+  color: var(--text-color-wht);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+[data-page-links*="clr-bad-bld-wht"]:not(.rm-block-input-focused) {
+  background-color: var(--color-wht);
+  border: solid var(--border-thickness) var(--border-wht);
+  color: var(--text-color-wht);
+  margin-bottom: var(--block-margin);
+  border-radius: var(--border-radius);
+}
+
+/* Apply semi-bold ONLY to the parent block, not descendants */
+[data-page-links*="clr-bad-bld-wht"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  font-weight: 600; /* Semi-bold text for bld variant */
+}
+
+/* 
+ * 3.0 Special Handling 
+ * Additional rules for specific block states or behaviors
+ */
+
+/* 3.1 Collapsed Block Handling */
+/* Ensures child blocks don't show styling when parent is collapsed */
+.rm-block--closed[data-page-links*="clr-bad-"] > .rm-block-children {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.rm-block--closed[data-page-links*="clr-bad-"] > .rm-block-children::before {
+  display: none !important;
+}
+
+/* 3.2 Edit Mode 
+ * special instructions for when the user is focused on a block and in edit mode 
+ * this is important because otherwise in some of the "bold" colors especially it can be hard to see exactly which block you are editing
+ * this section creates a visible color change when you shift into "focus" or "edit" mode
+*/
+
+:root {
+  --focus-blue: rgba(173, 216, 230, 0.6); /* Pale blue tint */
+  --focus-brightness: 1.1; /* Lightening factor */
+}
+
+/* Setup smooth transition for background and filter */
+.rm-block-input {
+  transition: background-color 0.15s ease, backdrop-filter 0.2s ease;
+}
+
+/* Focus effect */
+.rm-block-input:focus-within {
+  background-color: var(--focus-blue);
+  backdrop-filter: brightness(var(--focus-brightness));
+  border-radius: 10px;
+}
+
+/* 
+ * 4.0 Accent Feature (-act suffix)
+ * Adds left accent border to parent blocks only
+ */
+
+/* 4.1 Standard accent variants */
+[data-page-links*="clr-gry-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-gry-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-blu-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-blu-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-red-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-red-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-grn-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-grn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-ylo-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-ylo-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-orn-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-orn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-brn-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-brn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-ppl-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-ppl-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-blk-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blk);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-blk-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blk);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-wht-act"]:not(.rm-block-input-focused) > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-wht);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-wht-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-wht);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+/* 4.2 Light accent variants */
+[data-page-links*="clr-lgt-gry-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-gry-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-blu-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-blu-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-red-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-red-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-grn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-grn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-ylo-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-ylo-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-orn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-orn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-brn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-brn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-lgt-ppl-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-lgt-ppl-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-lgt-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+/* 4.3 Bold accent variants */
+[data-page-links*="clr-bld-gry-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-gry-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-gry);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-blu-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-blu-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-blu);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-red-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-red-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-red);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-grn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-grn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-grn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-ylo-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-ylo-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-ylo);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-orn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-orn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-orn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-brn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-brn-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-brn);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-ppl-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-ppl-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-bld-ppl);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-blk-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blk);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-blk-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-blk);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bld-wht-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-wht);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+[data-page-links*="clr-bad-bld-wht-act"]:not(.rm-block-input-focused)
+  > .rm-block-main {
+  border-left: var(--accent-thickness) solid var(--accent-wht);
+  border-top-left-radius: var(--accent-radius);
+  border-bottom-left-radius: var(--accent-radius);
+}
+
+/* 
+ * 5.0 Tag Visibility 
+ * Control whether color tags are visible in the rendered view
+ */
+
+/* 5.1 Hide all color tags using the common prefix */
+/* This is more efficient than listing all variants individually */
+[data-tag^="clr-"] {
+  display: none;
+}
+
+/* 
+ * 6.0 Documentation
+ * Usage examples and explanations
+ *
+ * STANDARD TAGS:
+ * - clr-red, clr-blu, clr-grn, clr-ylo, clr-orn, clr-brn, clr-ppl, clr-gry, clr-blk, clr-wht
+ *
+ * MODIFIERS:
+ * - lgt: Light variant (e.g., clr-lgt-blu)
+ * - bld: Bold variant with vibrant colors and semi-bold text (e.g., clr-bld-red)
+ *   Note: Bold variants use more vibrant colors with appropriate high-contrast text
+ *   For black and white, the bold variant uses the same background color but applies semi-bold text
+ * - act: Accent variant adds curved left border accent (e.g., clr-blu-act, clr-bad-lgt-orn-act)
+ *
+ * ACCENT CUSTOMIZATION:
+ * - Thickness: Change --accent-thickness variable (default: 4px) for thicker/thinner accents
+ * - Corners: Change --accent-radius variable (default: 3px, set to 0 for sharp corners)
+ * - Bold colors use LIGHT PASTEL accent colors for maximum pop (e.g., dark red background gets light pink accent)
+ * - Standard/Light colors use DARKER accent colors for contrast
+ *
+ * TEXT EFFECTS:
+ * - Bold orange text includes a subtle orange text shadow
+ * - Bold variant text is semi-bold (font-weight: 600) for parent blocks
+ * - When using clr-bad-bld-* tags, only the parent block gets semi-bold text, not the descendants
+ * - Text styling is disabled when a block is being edited (focus mode) for better readability
+ * - Accent borders disappear in edit mode for better usability
+ *
+ * SCOPE:
+ * - Default: Applies to block only
+ * - bad: Both block and descendants (e.g., clr-bad-ylo, clr-bad-lgt-red, clr-bad-bld-orn)
+ * - Accent (-act): Always applies only to parent block, even with -bad- modifier
+ *
+ * EXAMPLES:
+ * #clr-blu - Standard blue block
+ * #clr-lgt-blu - Light blue block
+ * #clr-bld-blu - Bold blue block with semi-bold text
+ * #clr-blu-act - Blue block with darker blue left accent
+ * #clr-bad-ylo - Yellow styling applied to both block and descendants
+ * #clr-bad-bld-orn-act - Bold orange styling with semi-bold text in parent block only + orange accent
+ * #clr-lgt-grn-act - Light green block with darker green left accent
+ */
+
+/* boost the tooltips */
+
+/* 🏆 CATHEDRAL FIX - Most likely to work */
+.bp3-tooltip,
+.bp3-popover,
+.bp3-popover-content {
+  z-index: 999999 !important;
+}
