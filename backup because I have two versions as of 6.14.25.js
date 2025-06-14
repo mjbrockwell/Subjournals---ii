@@ -589,7 +589,7 @@ This is your one-time welcome message.`);
 
       const buttonContainer = document.createElement("div");
       buttonContainer.className = "subjournals-trigger";
-      buttonContainer.style.top = multiUserMode ? "75px" : "28px"; // Smaller offset
+      buttonContainer.style.top = multiUserMode ? "45px" : "8px"; // Smaller offset
 
       const infoButton = document.createElement("button");
       infoButton.className = "subjournals-info";
@@ -745,8 +745,8 @@ This is your one-time welcome message.`);
       dropdown.style.position = "absolute";
       dropdown.style.top =
         buttonContainerRect.bottom - parentContainerRect.top + "px";
-      dropdown.style.right =
-        buttonContainerRect.right - parentContainerRect.right + 72 + "px";
+      dropdown.style.left =
+        buttonContainerRect.left - parentContainerRect.left + "px";
       dropdown.style.width = buttonContainerRect.width + "px";
       dropdown.style.zIndex = "9999";
 
@@ -1003,10 +1003,10 @@ This is your one-time welcome message.`);
     style.textContent = `
       /* 🎨 MAIN TRIGGER BUTTON - 33% SMALLER */
       .subjournals-trigger {
-        position: absolute; right: 36px; z-index: 9999; display: flex;
+        position: absolute; left: 8px; z-index: 9999; display: flex;
         border: 1px solid #8B4513; border-radius: 6px; background: rgb(251, 238, 166);
         box-shadow: 0 2px 4px rgba(0,0,0,0.15); transition: all 0.2s ease; overflow: hidden;
-        font-size: 14px; 
+        font-size: 11px; /* Reduced from ~14px */
       }
       .subjournals-trigger:hover { background: #FFF700; }
       
@@ -1019,36 +1019,35 @@ This is your one-time welcome message.`);
         background: rgba(139, 69, 19, 0.1);
       }
       
-      /* 🎨 BUTTON SIZING */
+      /* 🎨 BUTTON SIZING - ABOUT 33% SMALLER */
       .subjournals-info { 
         border-right: 1px solid #8B4513; 
-        padding: 6px 8px; /* Reduced from 8px 10px */
+        padding: 5px 7px; /* Reduced from 8px 10px */
         font-size: 10px; /* Reduced from 14px */
       }
       .subjournals-main { 
-        padding: 9px 13px; /* Reduced from 12px 16px */
+        padding: 8px 11px; /* Reduced from 12px 16px */
         flex: 1; white-space: nowrap; 
-        font-size: 14px; /* Slightly larger for readability */
-        font-weight: bold;
+        font-size: 11px; /* Slightly larger for readability */
       }
       .subjournals-dismiss { 
         border-left: 1px solid #8B4513; 
         padding: 5px 7px; /* Reduced from 8px 10px */
-        font-size: 11px; /* Reduced from 12px */
-        min-width: 24px; /* Reduced from 30px */
+        font-size: 9px; /* Reduced from 12px */
+        min-width: 20px; /* Reduced from 30px */
       }
       
       /* 🎨 DROPDOWN - PROPORTIONALLY SMALLER */
       .subjournals-dropdown {
         position: absolute; z-index: 9999; background: white; border: 1px solid #8B4513;
         border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-        box-sizing: border-box; font-size: 13px; /* Reduced from 14px */
+        box-sizing: border-box; font-size: 11px; /* Reduced from 14px */
       }
       
       .subjournals-option {
         padding: 7px 10px; /* Reduced from 10px 15px */
         cursor: pointer; border-bottom: 1px solid #f0f0f0;
-        transition: background 0.2s ease; font-size: 13px; /* Reduced from 14px */
+        transition: background 0.2s ease; font-size: 11px; /* Reduced from 14px */
         font-weight: 500;
       }
       .subjournals-option:hover { background: #f8f9fa !important; }
