@@ -1,16 +1,401 @@
-// 📔 FULL FEATURED SUBJOURNALS v3.0 - THE ULTIMATE EDITION
-// Complete parallel journaling solution combining the best of both worlds
-// Features: Context-aware UI, dual navigation modes, bulletproof reliability
+// 📔 SUBJOURNALS v4.1 - WITH AGGRESSIVE STRUCTURE FILTERING
+// 🐛 FIXED: Bulletproof structure block detection using tag references
+// ✅ ENHANCED: Pre-filters blocks to only those with actual #st0 tags
+// ✅ COMPATIBLE: Works with other button-using extensions
 
 export default {
   onload: ({ extensionAPI }) => {
     console.log(
-      "📔 Full Featured Subjournals v3.0 loading - THE ULTIMATE EDITION!"
+      "📔 Subjournals v4.1 loading - Bulletproof Structure Filtering!"
     );
 
-    // ==================== 1.0 🌳 PROFESSIONAL FOUNDATION ====================
+    // ===================================================================
+    // 🚀 SIMPLE BUTTON UTILITY (NO IIFE) - ESSENTIAL PARTS ONLY
+    // ===================================================================
 
-    // 1.1 🍎 Configuration constants
+    // ==================== BUTTON STACK POSITIONING (CRITICAL!) ====================
+
+    const BUTTON_STACKS = {
+      "top-left": {
+        maxButtons: 2,
+        positions: [
+          { x: 14, y: 6 },
+          { x: 14, y: 54 },
+        ],
+      },
+      "top-right": {
+        maxButtons: 5,
+        positions: [
+          { x: -14, y: 6 },
+          { x: -14, y: 54 },
+          { x: -14, y: 102 },
+          { x: -14, y: 150 },
+          { x: -14, y: 198 },
+        ],
+      },
+    };
+
+    // ==================== PAGE CHANGE DETECTOR ====================
+
+    class SimplePageChangeDetector {
+      constructor() {
+        this.currentUrl = window.location.href;
+        this.currentTitle = document.title;
+        this.listeners = new Set();
+        this.isMonitoring = false;
+      }
+
+      startMonitoring() {
+        if (this.isMonitoring) return;
+        this.setupURLListeners();
+        this.setupTitleListener();
+        this.setupPeriodicCheck();
+        this.isMonitoring = true;
+        console.log("🚀 Simple page monitoring started");
+      }
+
+      stopMonitoring() {
+        if (!this.isMonitoring) return;
+        window.removeEventListener("popstate", this.boundURLChange);
+        if (this.originalPushState) history.pushState = this.originalPushState;
+        if (this.originalReplaceState)
+          history.replaceState = this.originalReplaceState;
+        if (this.titleObserver) this.titleObserver.disconnect();
+        if (this.checkInterval) clearInterval(this.checkInterval);
+        this.isMonitoring = false;
+        console.log("🛑 Simple page monitoring stopped");
+      }
+
+      addListener(callback) {
+        this.listeners.add(callback);
+        return () => this.listeners.delete(callback);
+      }
+
+      notifyChange(type) {
+        this.listeners.forEach((callback) => {
+          try {
+            callback(type);
+          } catch (error) {
+            console.error("🚨 Page change listener error:", error);
+          }
+        });
+      }
+
+      setupURLListeners() {
+        this.boundURLChange = () => {
+          if (window.location.href !== this.currentUrl) {
+            this.currentUrl = window.location.href;
+            this.notifyChange("url");
+          }
+        };
+
+        window.addEventListener("popstate", this.boundURLChange);
+
+        this.originalPushState = history.pushState;
+        this.originalReplaceState = history.replaceState;
+
+        history.pushState = (...args) => {
+          this.originalPushState.apply(history, args);
+          setTimeout(() => this.boundURLChange(), 0);
+        };
+
+        history.replaceState = (...args) => {
+          this.originalReplaceState.apply(history, args);
+          setTimeout(() => this.boundURLChange(), 0);
+        };
+      }
+
+      setupTitleListener() {
+        this.titleObserver = new MutationObserver((mutations) => {
+          const newTitle = document.title;
+          if (newTitle !== this.currentTitle) {
+            this.currentTitle = newTitle;
+            this.notifyChange("title");
+          }
+        });
+
+        this.titleObserver.observe(
+          document.querySelector("title") || document.head,
+          {
+            childList: true,
+            subtree: true,
+            characterData: true,
+          }
+        );
+      }
+
+      setupPeriodicCheck() {
+        this.checkInterval = setInterval(() => {
+          const currentUrl = window.location.href;
+          const currentTitle = document.title;
+
+          if (currentUrl !== this.currentUrl) {
+            this.currentUrl = currentUrl;
+            this.notifyChange("periodic-url");
+          }
+
+          if (currentTitle !== this.currentTitle) {
+            this.currentTitle = currentTitle;
+            this.notifyChange("periodic-title");
+          }
+        }, 1000);
+      }
+    }
+
+    // ==================== SHARED BUTTON REGISTRY (CRITICAL!) ====================
+
+    class SharedButtonRegistry {
+      constructor() {
+        this.buttons = new Map();
+        this.pageDetector = new SimplePageChangeDetector();
+        this.isInitialized = false;
+      }
+
+      initialize() {
+        if (this.isInitialized) return;
+
+        this.pageDetector.startMonitoring();
+        this.pageDetector.addListener(() => this.refreshAllButtons());
+
+        this.isInitialized = true;
+        console.log("🌟 SharedButtonRegistry initialized");
+      }
+
+      registerButton(
+        id,
+        buttonCreator,
+        shouldShow,
+        preferredStack = "top-right"
+      ) {
+        console.log(`📌 Registering button: ${id} for ${preferredStack}`);
+
+        this.buttons.set(id, {
+          creator: buttonCreator,
+          shouldShow: shouldShow,
+          stack: preferredStack,
+          element: null,
+          isVisible: false,
+        });
+
+        this.refreshButton(id);
+        return id;
+      }
+
+      removeButton(id) {
+        const buttonData = this.buttons.get(id);
+        if (buttonData?.element?.parentNode) {
+          buttonData.element.parentNode.removeChild(buttonData.element);
+        }
+        this.buttons.delete(id);
+        console.log(`🗑️ Removed button: ${id}`);
+      }
+
+      refreshButton(id) {
+        const buttonData = this.buttons.get(id);
+        if (!buttonData) return;
+
+        const shouldBeVisible = buttonData.shouldShow();
+
+        if (shouldBeVisible && !buttonData.isVisible) {
+          this.showButton(id);
+        } else if (!shouldBeVisible && buttonData.isVisible) {
+          this.hideButton(id);
+        }
+      }
+
+      refreshAllButtons() {
+        setTimeout(() => {
+          this.buttons.forEach((_, id) => this.refreshButton(id));
+        }, 100);
+      }
+
+      showButton(id) {
+        const buttonData = this.buttons.get(id);
+        if (!buttonData || buttonData.isVisible) return;
+
+        const targetContainer = this.findTargetContainer();
+        if (!targetContainer) {
+          console.warn(`🎯 Could not find target container for ${id}`);
+          return;
+        }
+
+        const { stack, position } = this.findOptimalPosition(buttonData.stack);
+        const element = buttonData.creator(stack, position);
+
+        element.style.position = "absolute";
+        element.style.zIndex = "9999";
+
+        if (stack === "top-right") {
+          element.style.right = `${Math.abs(
+            BUTTON_STACKS[stack].positions[position].x
+          )}px`;
+        } else {
+          element.style.left = `${BUTTON_STACKS[stack].positions[position].x}px`;
+        }
+        element.style.top = `${BUTTON_STACKS[stack].positions[position].y}px`;
+
+        targetContainer.appendChild(element);
+
+        buttonData.element = element;
+        buttonData.isVisible = true;
+
+        console.log(`✅ Showed button ${id} at ${stack} position ${position}`);
+      }
+
+      hideButton(id) {
+        const buttonData = this.buttons.get(id);
+        if (!buttonData || !buttonData.isVisible) return;
+
+        if (buttonData.element?.parentNode) {
+          buttonData.element.parentNode.removeChild(buttonData.element);
+        }
+
+        buttonData.element = null;
+        buttonData.isVisible = false;
+
+        console.log(`🙈 Hid button ${id}`);
+      }
+
+      findTargetContainer() {
+        const targets = [
+          ".roam-article",
+          ".roam-main",
+          ".rm-article-wrapper",
+          ".roam-center-panel",
+          ".flex-h-box > div:nth-child(2)",
+          "#app > div > div > div:nth-child(2)",
+          '.bp3-tab-panel[aria-hidden="false"]',
+        ];
+
+        for (const selector of targets) {
+          const element = document.querySelector(selector);
+          if (element) {
+            if (getComputedStyle(element).position === "static") {
+              element.style.position = "relative";
+            }
+            return element;
+          }
+        }
+
+        return document.body;
+      }
+
+      findOptimalPosition(preferredStack) {
+        const stack =
+          BUTTON_STACKS[preferredStack] || BUTTON_STACKS["top-right"];
+        const stackName =
+          preferredStack in BUTTON_STACKS ? preferredStack : "top-right";
+
+        const usedPositions = Array.from(this.buttons.values())
+          .filter((b) => b.isVisible && b.stack === stackName)
+          .map((b) => this.getButtonPosition(b.element));
+
+        for (let i = 0; i < stack.maxButtons; i++) {
+          if (!usedPositions.includes(i)) {
+            return { stack: stackName, position: i };
+          }
+        }
+
+        return { stack: stackName, position: 0 };
+      }
+
+      getButtonPosition(element) {
+        if (!element) return -1;
+        const topValue = parseInt(element.style.top) || 0;
+        const positions = BUTTON_STACKS["top-right"].positions;
+        return positions.findIndex((pos) => pos.y === topValue);
+      }
+
+      cleanup() {
+        this.buttons.forEach((_, id) => this.removeButton(id));
+        this.pageDetector.stopMonitoring();
+        console.log("🧹 Shared Button Registry cleaned up");
+      }
+    }
+
+    // ==================== INITIALIZE SHARED REGISTRY ====================
+
+    if (!window.SharedButtonRegistry) {
+      window.SharedButtonRegistry = new SharedButtonRegistry();
+      window.SharedButtonRegistry.initialize();
+      console.log("🌟 Created global SharedButtonRegistry");
+    } else {
+      console.log("🔗 Using existing SharedButtonRegistry");
+    }
+
+    const buttonRegistry = window.SharedButtonRegistry;
+
+    // ===================================================================
+    // 🎨 BEAUTIFUL DROPDOWN STYLING
+    // ===================================================================
+
+    const dropdownStyle = document.createElement("style");
+    dropdownStyle.textContent = `
+      .subjournals-dropdown {
+        position: absolute;
+        z-index: 10001;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 0 0 6px 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        box-sizing: border-box;
+        font-size: 14px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overflow: hidden;
+        animation: dropdownFadeIn 200ms ease;
+        border-top: none;
+      }
+      
+      @keyframes dropdownFadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .subjournals-option {
+        padding: 10px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 150ms ease;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        background: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
+      }
+      
+      .subjournals-option:hover {
+        background: #f8f9fa !important;
+        transform: translateX(2px);
+      }
+      
+      .subjournals-option:last-child {
+        border-bottom: none;
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
+      }
+
+      /* Color-coded borders */
+      .subjournals-option[data-color="red"] { border-left: 3px solid #e74c3c !important; color: #e74c3c !important; }
+      .subjournals-option[data-color="orange"] { border-left: 3px solid #e67e22 !important; color: #e67e22 !important; }
+      .subjournals-option[data-color="yellow"] { border-left: 3px solid #f1c40f !important; color: #f39c12 !important; }
+      .subjournals-option[data-color="green"] { border-left: 3px solid #27ae60 !important; color: #27ae60 !important; }
+      .subjournals-option[data-color="blue"] { border-left: 3px solid #3498db !important; color: #3498db !important; }
+      .subjournals-option[data-color="purple"] { border-left: 3px solid #9b59b6 !important; color: #9b59b6 !important; }
+      .subjournals-option[data-color="brown"] { border-left: 3px solid #8b4513 !important; color: #8b4513 !important; }
+      .subjournals-option[data-color="grey"] { border-left: 3px solid #95a5a6 !important; color: #7f8c8d !important; }
+      .subjournals-option[data-color="white"] { border-left: 3px solid #ecf0f1 !important; color: #2c3e50 !important; }
+      .subjournals-option[data-color="black"] { border-left: 3px solid #2c3e50 !important; color: #2c3e50 !important; }
+    `;
+    document.head.appendChild(dropdownStyle);
+
+    // ===================================================================
+    // 📔 SUBJOURNALS CORE LOGIC
+    // ===================================================================
+
     const DATE_PAGE_REGEX =
       /^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{1,2})(st|nd|rd|th), (\d{4})$/;
 
@@ -27,297 +412,88 @@ export default {
       black: "clr-blk-act",
     };
 
-    // 1.2 🍎 State management
-    let updateTimer;
     let hasShownOnboarding = false;
 
-    // ==================== 1.3 🛠️ ENHANCED ONBOARDING SYSTEM ====================
+    // ==================== PAGE CONTEXT DETECTION ====================
 
-    function needsOnboarding() {
+    function getCurrentPageTitle() {
       try {
-        const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]
-        `)?.[0]?.[0];
-
-        if (!configPageUid) return true;
-
-        const blocks = window.roamAlphaAPI.q(`
-          [:find ?uid ?string :where 
-           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
-           [?child :block/uid ?uid] [?child :block/string ?string]]
-        `);
-
-        const hasMySubjournals = blocks.some(
-          ([uid, string]) => string?.trim() === "My Subjournals:"
-        );
-        return !hasMySubjournals;
-      } catch (error) {
-        console.error("🛠️ Error checking onboarding status:", error);
-        return true;
-      }
-    }
-
-    async function createDefaultStructure() {
-      try {
-        console.log("🛠️ Creating enhanced [[roam/subjournals]] structure...");
-
-        const pageUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.page.create({
-          page: { title: "roam/subjournals", uid: pageUid },
-        });
-
-        const instructionUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.block.create({
-          location: { "parent-uid": pageUid, order: 0 },
-          block: {
-            uid: instructionUid,
-            string:
-              "Welcome to Full Featured Subjournals! List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
-          },
-        });
-
-        const subjournalsUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.block.create({
-          location: { "parent-uid": pageUid, order: 1 },
-          block: { uid: subjournalsUid, string: "My Subjournals:" },
-        });
-
-        // Create diverse sample subjournals
-        const samples = [
-          { name: "Therapy Journal", color: "blue" },
-          { name: "Project Ideas", color: "green" },
-          { name: "Health & Wellness", color: "red" },
-          { name: "Learning Notes", color: "purple" },
-        ];
-
-        for (let i = 0; i < samples.length; i++) {
-          const sampleUid = window.roamAlphaAPI.util.generateUID();
-          await window.roamAlphaAPI.data.block.create({
-            location: { "parent-uid": subjournalsUid, order: i },
-            block: { uid: sampleUid, string: samples[i].name },
-          });
-
-          const colorUid = window.roamAlphaAPI.util.generateUID();
-          await window.roamAlphaAPI.data.block.create({
-            location: { "parent-uid": sampleUid, order: 0 },
-            block: { uid: colorUid, string: `Color: ${samples[i].color}` },
-          });
-        }
-
-        console.log("✅ Enhanced default structure created successfully");
-        return true;
-      } catch (error) {
-        console.error("❌ Error creating default structure:", error);
-        return false;
-      }
-    }
-
-    function showOnboardingGuidance() {
-      if (hasShownOnboarding) return;
-      hasShownOnboarding = true;
-
-      setTimeout(() => {
-        alert(`📔 Welcome to Full Featured Subjournals v3.0!
-
-🎯 THE ULTIMATE parallel journaling solution is ready!
-
-✨ What's new:
-- Works on BOTH date pages AND subjournal pages
-- Dropdown selection on date pages → opens in sidebar
-- Direct entry on subjournal pages → Focus Mode zoom
-- Bulletproof reliability with professional error handling
-
-🔧 I've created [[roam/subjournals]] with sample configuration.
-
-👆 Click the info button (ℹ️) to customize your subjournals!
-
-This is your one-time welcome message.`);
-      }, 1000);
-    }
-
-    // ==================== 1.4 🎮 MULTI-USER MODE ====================
-
-    function isMultiUserMode() {
-      try {
-        const setting = extensionAPI.settings.get("multiUserMode");
-        return setting === true || setting === "true";
-      } catch (error) {
-        return false;
-      }
-    }
-
-    async function getCurrentUserDisplayName() {
-      try {
-        const userUid = window.roamAlphaAPI.user.uid();
-        if (userUid) {
-          const userData = window.roamAlphaAPI.pull("[*]", [
-            ":user/uid",
-            userUid,
-          ]);
-          return (
-            userData?.[":user/display-name"] ||
-            userData?.[":user/email"] ||
-            userData?.[":user/uid"] ||
-            userUid
-          );
-        }
-        throw new Error("No user UID available");
-      } catch (error) {
-        try {
-          const globalAppState = JSON.parse(
-            localStorage.getItem("globalAppState") || '["","",[]]'
-          );
-          const userIndex = globalAppState.findIndex((s) => s === "~:user");
-          if (userIndex > 0) {
-            const userArray = globalAppState[userIndex + 1];
-            const displayNameIndex = userArray.findIndex(
-              (s) => s === "~:display-name"
-            );
-            if (displayNameIndex > 0) return userArray[displayNameIndex + 1];
-          }
-        } catch (fallbackError) {
-          console.log("🎮 Fallback method failed:", fallbackError);
-        }
-        return "User";
-      }
-    }
-
-    // ==================== 1.5 🔍 UNIFIED CONTEXT DETECTION ====================
-
-    async function getPageContext() {
-      try {
-        let pageTitle;
-        let pageUid;
-
-        // Method 1: API call
-        try {
-          pageUid =
-            await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-          if (pageUid) {
-            pageTitle = window.roamAlphaAPI.pull("[:node/title]", [
-              ":block/uid",
-              pageUid,
-            ])?.[":node/title"];
-          }
-        } catch (error) {
-          console.log("🔍 API method failed, trying fallbacks...");
-        }
-
-        // Method 2: URL parsing fallback
-        if (!pageTitle) {
-          const urlMatch = window.location.href.match(
-            /#\/app\/[^\/]+\/page\/([^\/]+)/
-          );
-          if (urlMatch) {
-            pageUid = urlMatch[1];
-            pageTitle = window.roamAlphaAPI.pull("[:node/title]", [
-              ":block/uid",
-              pageUid,
-            ])?.[":node/title"];
-          }
-        }
-
-        // Method 3: DOM fallback
-        if (!pageTitle) {
-          const titleElement = document.querySelector(
-            ".rm-title-display, [data-page-links], .rm-page-ref-link-color"
-          );
-          pageTitle = titleElement?.textContent?.trim();
-        }
-
-        if (!pageTitle) return { context: "unknown" };
-
-        // Check if it's a date page
-        const isDate = DATE_PAGE_REGEX.test(pageTitle);
-
-        // Check if it's a configured subjournal
-        const subjournals = getSubjournals();
-        const matchingSubjournal = subjournals.find(
-          (s) => s.name === pageTitle
-        );
-
-        if (isDate) {
-          return {
-            context: "date",
-            pageTitle,
+        // Method 1: API
+        const pageUid =
+          window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid?.();
+        if (pageUid) {
+          const title = window.roamAlphaAPI.pull("[:node/title]", [
+            ":block/uid",
             pageUid,
-            dateInfo: parseDatePage(pageTitle),
-          };
-        } else if (matchingSubjournal) {
-          return {
-            context: "subjournal",
-            pageTitle,
-            pageUid,
-            subjournalInfo: matchingSubjournal,
-          };
-        } else {
-          return { context: "other", pageTitle, pageUid };
+          ])?.[":node/title"];
+          if (title) return title;
         }
       } catch (error) {
-        console.error("🔍 Error detecting page context:", error);
-        return { context: "error" };
+        console.log("🔍 API method failed, trying fallbacks...");
       }
+
+      try {
+        // Method 2: URL parsing
+        const urlMatch = window.location.href.match(
+          /#\/app\/[^\/]+\/page\/([^\/]+)/
+        );
+        if (urlMatch) {
+          const pageUid = urlMatch[1];
+          const title = window.roamAlphaAPI.pull("[:node/title]", [
+            ":block/uid",
+            pageUid,
+          ])?.[":node/title"];
+          if (title) return title;
+        }
+      } catch (error) {
+        console.log("🔍 URL method failed, trying DOM...");
+      }
+
+      try {
+        // Method 3: DOM
+        const titleElement = document.querySelector(
+          ".rm-title-display, [data-page-links], .rm-page-ref-link-color"
+        );
+        if (titleElement?.textContent?.trim()) {
+          return titleElement.textContent.trim();
+        }
+      } catch (error) {
+        console.log("🔍 DOM method failed");
+      }
+
+      return null;
     }
 
-    function parseDatePage(title) {
-      const match = DATE_PAGE_REGEX.exec(title);
-      if (!match) return null;
-
-      const [, month, day, suffix, year] = match;
-      const date = new Date(
-        parseInt(year),
-        getMonthIndex(month),
-        parseInt(day)
-      );
-      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-
-      return {
-        month,
-        day: parseInt(day),
-        year: parseInt(year),
-        dayName,
-        fullDate: title,
-        fullMonth: `${month} ${year}`,
-      };
+    function isDailyNote() {
+      const title = getCurrentPageTitle();
+      return title && DATE_PAGE_REGEX.test(title);
     }
 
-    function getMonthIndex(monthName) {
-      const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      return months.indexOf(monthName);
+    function isSubjournalPage() {
+      const title = getCurrentPageTitle();
+      if (!title) return null;
+
+      const subjournals = getSubjournals();
+      const matchingSubjournal = subjournals.find((s) => s.name === title);
+      return matchingSubjournal || null;
     }
 
-    function getColorTag(color = "blue") {
-      return COLOR_MAP[color.toLowerCase().trim()] || COLOR_MAP.blue;
+    function shouldShowButton() {
+      return isDailyNote() || isSubjournalPage() !== null;
     }
 
-    // ==================== 1.6 🦊 UNIFIED CONFIGURATION READING ====================
+    // ==================== SUBJOURNALS CONFIGURATION ====================
 
     function getSubjournals() {
       try {
-        const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]
-        `)?.[0]?.[0];
-
+        const configPageUid = window.roamAlphaAPI.q(
+          `[:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]`
+        )?.[0]?.[0];
         if (!configPageUid) return [];
 
-        const allBlocks = window.roamAlphaAPI.q(`
-          [:find ?uid ?string :where 
-           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
-           [?child :block/uid ?uid] [?child :block/string ?string]]
-        `);
+        const allBlocks = window.roamAlphaAPI.q(
+          `[:find ?uid ?string :where [?page :block/uid "${configPageUid}"] [?child :block/page ?page] [?child :block/uid ?uid] [?child :block/string ?string]]`
+        );
 
         const mySubjournalsBlock = allBlocks.find(
           ([uid, string]) => string?.trim() === "My Subjournals:"
@@ -325,10 +501,9 @@ This is your one-time welcome message.`);
         if (!mySubjournalsBlock) return [];
 
         const parentUid = mySubjournalsBlock[0];
-        const childUids = window.roamAlphaAPI.q(`
-          [:find ?uid :where 
-           [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent] [?child :block/uid ?uid]]
-        `);
+        const childUids = window.roamAlphaAPI.q(
+          `[:find ?uid :where [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent] [?child :block/uid ?uid]]`
+        );
 
         const subjournals = [];
         childUids.forEach(([uid]) => {
@@ -362,328 +537,108 @@ This is your one-time welcome message.`);
       }
     }
 
-    // ==================== 1.7 🎯 UNIFIED CREATION ALGORITHM ====================
+    // ==================== BUTTON CREATION WITH EXACT STYLING ====================
 
-    function findBlockWithColorAgnosticSearch(parentUid, searchPattern) {
-      try {
-        const startsWith = window.roamAlphaAPI.q(`
-          [:find (pull ?child [:block/uid :block/string])
-           :where 
-           [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent]
-           [?child :block/string ?string] [(clojure.string/starts-with? ?string "${searchPattern}")]]
-        `);
-
-        if (startsWith.length > 0) {
-          const found = startsWith[0][0];
-          return {
-            uid: found[":block/uid"] || found.uid,
-            string: found[":block/string"] || found.string,
-          };
-        }
-
-        const containing = window.roamAlphaAPI.q(`
-          [:find (pull ?child [:block/uid :block/string])
-           :where 
-           [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent]
-           [?child :block/string ?string] [(clojure.string/includes? ?string "${searchPattern}")]]
-        `);
-
-        const validBlocks = containing.filter(([block]) => {
-          const string = block[":block/string"] || block.string || "";
-          return string.trim().startsWith("#st0");
-        });
-
-        if (validBlocks.length > 0) {
-          const found = validBlocks[0][0];
-          return {
-            uid: found[":block/uid"] || found.uid,
-            string: found[":block/string"] || found.string,
-          };
-        }
-
-        return null;
-      } catch (error) {
-        console.error(`🎯 Search error for "${searchPattern}":`, error);
-        return null;
-      }
-    }
-
-    async function createBlock(parentUid, content, order = null) {
-      if (order === null) {
-        const childCount =
-          window.roamAlphaAPI.q(`
-          [:find (count ?child) :where 
-           [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent]]
-        `)?.[0]?.[0] || 0;
-        order = childCount;
-      }
-
-      const blockUid = window.roamAlphaAPI.util.generateUID();
-      await window.roamAlphaAPI.data.block.create({
-        location: { "parent-uid": parentUid, order: order },
-        block: { uid: blockUid, string: content },
-      });
-
-      return blockUid;
-    }
-
-    async function getOrCreatePageUid(title) {
-      let pageUid = window.roamAlphaAPI.q(`
-        [:find ?uid :where [?e :node/title "${title}"] [?e :block/uid ?uid]]
-      `)?.[0]?.[0];
-
-      if (pageUid) return pageUid;
-
-      pageUid = window.roamAlphaAPI.util.generateUID();
-      await window.roamAlphaAPI.data.page.create({
-        page: { title, uid: pageUid },
-      });
-      return pageUid;
-    }
-
-    async function getOrCreateJournalEntriesBlock(pageUid) {
-      const allBlocks = window.roamAlphaAPI.q(`
-        [:find ?uid ?string :where 
-         [?page :block/uid "${pageUid}"] [?child :block/page ?page]
-         [?child :block/uid ?uid] [?child :block/string ?string]]
-      `);
-
-      const journalBlock = allBlocks.find(
-        ([uid, string]) => string?.trim() === "Journal Entries:"
+    function createSubjournalsButton(stack, position) {
+      console.log(
+        `🔧 Creating subjournals button for ${stack} position ${position}`
       );
-      if (journalBlock) return journalBlock[0];
-
-      return await createBlock(pageUid, "Journal Entries:", 0);
-    }
-
-    async function createDateEntry(journalUid, dateInfo, color) {
-      const startTime = Date.now();
-      const TIMEOUT = 3000;
-      const colorTag = getColorTag(color);
-      const multiUserMode = isMultiUserMode();
-
-      let userDisplayName = "";
-      if (multiUserMode) {
-        try {
-          userDisplayName = await getCurrentUserDisplayName();
-        } catch (userError) {
-          userDisplayName = "User";
-        }
-      }
-
-      const workingOn = { step: null, uid: null, content: null };
-      let loopCount = 0;
-
-      while (Date.now() - startTime < TIMEOUT) {
-        loopCount++;
-
-        try {
-          // Year block
-          const yearCreateContent = `#st0 [[${dateInfo.year}]] #${colorTag}`;
-          const yearSearchPattern = `#st0 [[${dateInfo.year}]]`;
-          const yearBlock = findBlockWithColorAgnosticSearch(
-            journalUid,
-            yearSearchPattern
-          );
-
-          if (!yearBlock) {
-            if (workingOn.step !== "year" || workingOn.uid !== journalUid) {
-              workingOn.step = "year";
-              workingOn.uid = journalUid;
-              workingOn.content = yearCreateContent;
-              await createBlock(journalUid, yearCreateContent, 0);
-            }
-            continue;
-          }
-
-          // Month block
-          const monthCreateContent = `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`;
-          const monthSearchPattern = `#st0 [[${dateInfo.fullMonth}]]`;
-          const monthBlock = findBlockWithColorAgnosticSearch(
-            yearBlock.uid,
-            monthSearchPattern
-          );
-
-          if (!monthBlock) {
-            if (workingOn.step !== "month" || workingOn.uid !== yearBlock.uid) {
-              workingOn.step = "month";
-              workingOn.uid = yearBlock.uid;
-              workingOn.content = monthCreateContent;
-              await createBlock(yearBlock.uid, monthCreateContent, 0);
-            }
-            continue;
-          }
-
-          // Date block
-          const dateCreateContent = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`;
-          const dateSearchPattern = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`;
-          const dateBlock = findBlockWithColorAgnosticSearch(
-            monthBlock.uid,
-            dateSearchPattern
-          );
-
-          if (!dateBlock) {
-            if (workingOn.step !== "date" || workingOn.uid !== monthBlock.uid) {
-              workingOn.step = "date";
-              workingOn.uid = monthBlock.uid;
-              workingOn.content = dateCreateContent;
-              await createBlock(monthBlock.uid, dateCreateContent, 0);
-            }
-            continue;
-          }
-
-          // Content block
-          const initialContent = multiUserMode
-            ? `#[[${userDisplayName}]] `
-            : "";
-          const newBlockUid = await createBlock(dateBlock.uid, initialContent);
-
-          console.log(
-            `🎯 ✅ SUCCESS: Created entry in ${loopCount} loops (${
-              Date.now() - startTime
-            }ms)`
-          );
-          return newBlockUid;
-        } catch (error) {
-          console.error(`🎯 Loop ${loopCount} error:`, error.message);
-        }
-      }
-
-      throw new Error(`Timeout after ${TIMEOUT}ms (${loopCount} loops)`);
-    }
-
-    // ==================== 1.8 🦜 UNIFIED UI SYSTEM - SMALLER BUTTONS ====================
-
-    function findOptimalButtonContainer() {
-      const possibleTargets = [
-        ".roam-article",
-        ".roam-main",
-        ".rm-article-wrapper",
-        ".roam-center-panel",
-        ".flex-h-box > div:nth-child(2)",
-        "#app > div > div > div:nth-child(2)",
-        '.bp3-tab-panel[aria-hidden="false"]',
-      ];
-
-      for (const selector of possibleTargets) {
-        const element = document.querySelector(selector);
-        if (element) {
-          const computedStyle = getComputedStyle(element);
-          if (computedStyle.position === "static") {
-            element.style.position = "relative";
-          }
-          return { targetElement: element, selectorUsed: selector };
-        }
-      }
-
-      return { targetElement: document.body, selectorUsed: "body (fallback)" };
-    }
-
-    // 🎨 DATE PAGE UI: Dropdown Selection
-    function createDatePageButton() {
-      const existingButton = document.querySelector(".subjournals-trigger");
-      if (existingButton) existingButton.remove();
-
-      const multiUserMode = isMultiUserMode();
-      const { targetElement } = findOptimalButtonContainer();
 
       const buttonContainer = document.createElement("div");
-      buttonContainer.className = "subjournals-trigger";
-      buttonContainer.style.top = multiUserMode ? "75px" : "28px"; // Smaller offset
+      buttonContainer.style.display = "flex";
+      buttonContainer.style.alignItems = "center";
+      buttonContainer.style.gap = "0";
 
+      buttonContainer.style.background =
+        "linear-gradient(135deg, #fffbeb, #fef3c7)";
+      buttonContainer.style.border = "1.5px solid #8b4513";
+      buttonContainer.style.borderRadius = "12px";
+      buttonContainer.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
+      buttonContainer.style.overflow = "hidden";
+      buttonContainer.style.transition = "all 200ms ease";
+
+      // Check if we're on a subjournal page
+      const subjournalInfo = isSubjournalPage();
+      const isOnSubjournalPage = subjournalInfo !== null;
+
+      // Info button
       const infoButton = document.createElement("button");
-      infoButton.className = "subjournals-info";
       infoButton.textContent = "ℹ️";
+      infoButton.style.cssText = `
+        background: none; border: none; color: #78716c; padding: 8px 12px; cursor: pointer;
+        font-size: 14px; border-right: 1px solid rgba(139, 69, 19, 0.2); transition: all 150ms ease;
+        font-weight: 600;
+      `;
       infoButton.title = "Configure Subjournals";
-
-      const mainButton = document.createElement("button");
-      mainButton.className = "subjournals-main";
-      mainButton.textContent = "Add to Subjournal?";
-
-      const dismissButton = document.createElement("button");
-      dismissButton.className = "subjournals-dismiss";
-      dismissButton.textContent = "✕";
-      dismissButton.title = "Hide Button";
-
-      infoButton.addEventListener("click", (e) => {
-        e.stopPropagation();
+      infoButton.addEventListener("click", () => {
         window.roamAlphaAPI.ui.mainWindow.openPage({
           page: { title: "roam/subjournals" },
         });
       });
 
-      mainButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const subjournals = getSubjournals();
-        createDropdown(subjournals, mainButton, "sidebar");
-      });
-
-      dismissButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        buttonContainer.remove();
-      });
-
-      buttonContainer.appendChild(infoButton);
-      buttonContainer.appendChild(mainButton);
-      buttonContainer.appendChild(dismissButton);
-      targetElement.appendChild(buttonContainer);
-    }
-
-    // 🎨 SUBJOURNAL PAGE UI: Direct Entry
-    function createSubjournalPageButton(subjournalInfo) {
-      const existingButton = document.querySelector(".subjournals-trigger");
-      if (existingButton) existingButton.remove();
-
-      const multiUserMode = isMultiUserMode();
-      const { targetElement } = findOptimalButtonContainer();
-
-      const buttonContainer = document.createElement("div");
-      buttonContainer.className = "subjournals-trigger subjournal-mode";
-      buttonContainer.style.top = multiUserMode ? "45px" : "8px"; // Smaller offset
-
-      const infoButton = document.createElement("button");
-      infoButton.className = "subjournals-info";
-      infoButton.textContent = "ℹ️";
-      infoButton.title = "Configure Subjournals";
-
+      // Main button - different text based on page type
       const mainButton = document.createElement("button");
-      mainButton.className = "subjournals-main";
-      mainButton.textContent = "Add entry to this page?";
+      mainButton.textContent = isOnSubjournalPage
+        ? `Add entry to ${subjournalInfo.name}?`
+        : "Add to Subjournal?";
+      mainButton.style.cssText = `
+        background: none; border: none; color: #78716c; padding: 10px 16px; cursor: pointer;
+        font-size: 14px; font-weight: 600; flex: 1; transition: all 150ms ease;
+      `;
+      mainButton.addEventListener("click", () => {
+        if (isOnSubjournalPage) {
+          // Direct entry for subjournal page
+          handleDirectEntry(subjournalInfo);
+        } else {
+          // Dropdown for daily note page
+          const subjournals = getSubjournals();
+          showSubjournalDropdown(subjournals, buttonContainer);
+        }
+      });
 
+      // Dismiss button
       const dismissButton = document.createElement("button");
-      dismissButton.className = "subjournals-dismiss";
-      dismissButton.textContent = "✕";
-      dismissButton.title = "Hide Button";
-
-      infoButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        window.roamAlphaAPI.ui.mainWindow.openPage({
-          page: { title: "roam/subjournals" },
-        });
+      dismissButton.textContent = "×";
+      dismissButton.style.cssText = `
+        background: none; border: none; color: #78716c; padding: 8px 10px; cursor: pointer;
+        font-size: 14px; font-weight: 600; border-left: 1px solid rgba(139, 69, 19, 0.2); transition: all 150ms ease;
+      `;
+      dismissButton.addEventListener("click", () => {
+        buttonRegistry.removeButton("subjournals-main");
       });
 
-      mainButton.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log(`🐇 Direct entry clicked for ${subjournalInfo.name}`);
-        await handleDirectEntry(subjournalInfo);
+      // Hover effects
+      [infoButton, mainButton, dismissButton].forEach((btn) => {
+        btn.addEventListener(
+          "mouseenter",
+          () => (btn.style.backgroundColor = "rgba(139, 69, 19, 0.1)")
+        );
+        btn.addEventListener(
+          "mouseleave",
+          () => (btn.style.backgroundColor = "transparent")
+        );
       });
 
-      dismissButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        buttonContainer.remove();
+      // Container hover effect
+      buttonContainer.addEventListener("mouseenter", () => {
+        buttonContainer.style.transform = "translateY(-1px)";
+        buttonContainer.style.boxShadow = "0 6px 16px rgba(245, 158, 11, 0.4)";
+      });
+      buttonContainer.addEventListener("mouseleave", () => {
+        buttonContainer.style.transform = "translateY(0)";
+        buttonContainer.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
       });
 
       buttonContainer.appendChild(infoButton);
       buttonContainer.appendChild(mainButton);
       buttonContainer.appendChild(dismissButton);
-      targetElement.appendChild(buttonContainer);
 
-      console.log(`🦜 Direct entry button created for ${subjournalInfo.name}`);
+      return buttonContainer;
     }
 
-    function createDropdown(subjournals, mainButton, mode = "sidebar") {
+    // ==================== DROPDOWN AND ACTIONS ====================
+
+    function showSubjournalDropdown(subjournals, buttonContainer) {
       const existingDropdown = document.querySelector(".subjournals-dropdown");
       if (existingDropdown) existingDropdown.remove();
 
@@ -694,64 +649,43 @@ This is your one-time welcome message.`);
         return;
       }
 
+      // Create the dropdown
       const dropdown = document.createElement("div");
       dropdown.className = "subjournals-dropdown";
 
       subjournals.forEach(({ name, color }) => {
         const option = document.createElement("div");
         option.className = "subjournals-option";
-        option.textContent = name;
+        const displayName =
+          name.length > 20 ? name.substring(0, 17) + "..." : name;
+        option.textContent = displayName;
         option.setAttribute("data-color", color);
-
-        const colorMap = {
-          red: "#e74c3c",
-          orange: "#e67e22",
-          yellow: "#f1c40f",
-          green: "#27ae60",
-          blue: "#3498db",
-          purple: "#9b59b6",
-          brown: "#8b4513",
-          grey: "#95a5a6",
-          white: "#ecf0f1",
-          black: "#2c3e50",
-        };
-
-        const colorValue = colorMap[color.toLowerCase()] || "#3498db";
-        option.style.borderLeft = `2px solid ${colorValue}`; // Slightly thinner
-        option.style.color = colorValue;
+        option.title = name; // Full name in tooltip
 
         option.addEventListener("click", (e) => {
           e.stopPropagation();
           dropdown.remove();
-          console.log(
-            `🐇 Selected "${name}" with color "${color}" for ${mode} mode`
-          );
-
-          if (mode === "sidebar") {
-            handleSubjournalSelection(name, color);
-          } else {
-            handleDirectEntry({ name, color });
-          }
+          console.log(`🐇 Selected "${name}" with color "${color}"`);
+          handleSubjournalSelection(name, color);
         });
 
         dropdown.appendChild(option);
       });
 
-      const buttonContainer = mainButton.parentElement;
+      // Position the dropdown
       const parentContainer = buttonContainer.parentElement;
-      const buttonContainerRect = buttonContainer.getBoundingClientRect();
-      const parentContainerRect = parentContainer.getBoundingClientRect();
+      const buttonRect = buttonContainer.getBoundingClientRect();
+      const parentRect = parentContainer.getBoundingClientRect();
 
       dropdown.style.position = "absolute";
-      dropdown.style.top =
-        buttonContainerRect.bottom - parentContainerRect.top + "px";
-      dropdown.style.right =
-        buttonContainerRect.right - parentContainerRect.right + 72 + "px";
-      dropdown.style.width = buttonContainerRect.width + "px";
-      dropdown.style.zIndex = "9999";
+      dropdown.style.top = buttonRect.bottom - parentRect.top + "px";
+      dropdown.style.right = parentRect.right - buttonRect.right + "px";
+      dropdown.style.width = buttonRect.width + "px";
+      dropdown.style.zIndex = "10001";
 
       parentContainer.appendChild(dropdown);
 
+      // Close dropdown when clicking outside
       const closeDropdown = (e) => {
         if (
           !dropdown.contains(e.target) &&
@@ -765,14 +699,15 @@ This is your one-time welcome message.`);
       setTimeout(() => document.addEventListener("click", closeDropdown), 0);
     }
 
-    // ==================== 1.9 🎯 DUAL NAVIGATION MODES ====================
+    // ==================== SUBJOURNAL ENTRY CREATION ====================
 
-    // MODE 1: Sidebar Navigation (from date pages)
     async function handleSubjournalSelection(subjournalName, color) {
       try {
-        const context = await getPageContext();
-        if (!context.dateInfo)
-          throw new Error("Current page is not a valid date page");
+        console.log(`🎯 Creating entry for ${subjournalName} from daily note`);
+        const pageTitle = getCurrentPageTitle();
+        const dateInfo = parseDatePage(pageTitle);
+
+        if (!dateInfo) throw new Error("Current page is not a valid date page");
 
         const subjournalPageUid = await getOrCreatePageUid(subjournalName);
         const journalUid = await getOrCreateJournalEntriesBlock(
@@ -780,87 +715,48 @@ This is your one-time welcome message.`);
         );
         const targetBlockUid = await createDateEntry(
           journalUid,
-          context.dateInfo,
+          dateInfo,
           color
         );
 
-        // Open in sidebar with bulletproof focus
+        // Open in sidebar with focus
         await window.roamAlphaAPI.ui.rightSidebar.addWindow({
           window: { type: "outline", "block-uid": subjournalPageUid },
         });
 
         setTimeout(async () => {
           try {
-            const blockData = window.roamAlphaAPI.pull("[:block/string]", [
-              ":block/uid",
-              targetBlockUid,
-            ]);
-            const content = blockData?.[":block/string"] || "";
-            const cursorPosition = content.length;
-
             const windowId = `sidebar-outline-${subjournalPageUid}`;
-            const focusConfig = {
+            await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
               location: { "block-uid": targetBlockUid, "window-id": windowId },
-            };
-
-            if (isMultiUserMode() && cursorPosition > 0) {
-              focusConfig.selection = {
-                start: cursorPosition,
-                end: cursorPosition,
-              };
-            }
-
-            await window.roamAlphaAPI.ui.setBlockFocusAndSelection(focusConfig);
-            console.log(
-              "🎯 ✅ SIDEBAR FOCUS SUCCESS: Professional-grade sidebar focus achieved!"
-            );
-
-            setTimeout(() => {
-              const activeElement = document.activeElement;
-              const success =
-                activeElement?.tagName === "TEXTAREA" &&
-                activeElement?.closest(".rm-sidebar-window") &&
-                activeElement?.id?.includes(targetBlockUid);
-
-              if (!success) {
-                const sidebarTextarea = document.querySelector(
-                  ".rm-sidebar-window textarea"
-                );
-                if (sidebarTextarea) {
-                  sidebarTextarea.focus();
-                  console.log(
-                    "🎯 ✅ FALLBACK SUCCESS: Used textarea hunt approach"
-                  );
-                }
-              }
-            }, 200);
+            });
+            console.log("🎯 ✅ Sidebar focus achieved!");
           } catch (focusError) {
-            console.error("🎯 ❌ Focus error:", focusError);
+            console.error("🎯 Focus error:", focusError);
           }
         }, 800);
 
-        console.log(
-          `✅ SIDEBAR SUCCESS: Entry created in ${subjournalName} for ${context.dateInfo.fullDate}`
-        );
+        console.log(`✅ Entry created in ${subjournalName}`);
       } catch (error) {
-        console.error("⚠ Error in sidebar mode:", error);
+        console.error("❌ Error creating entry:", error);
         alert(`❌ Error: ${error.message}`);
       }
     }
 
-    // MODE 2: Focus Mode Navigation (from subjournal pages)
     async function handleDirectEntry(subjournalInfo) {
       try {
         console.log(
           `🎯 FOCUS MODE: Creating direct entry for ${subjournalInfo.name}`
         );
 
+        // Create date info for today
+        const today = new Date();
         const dateInfo = {
-          year: new Date().getFullYear(),
-          month: new Date().toLocaleDateString("en-US", { month: "long" }),
-          day: new Date().getDate(),
-          dayName: new Date().toLocaleDateString("en-US", { weekday: "long" }),
-          fullDate: new Date()
+          year: today.getFullYear(),
+          month: today.toLocaleDateString("en-US", { month: "long" }),
+          day: today.getDate(),
+          dayName: today.toLocaleDateString("en-US", { weekday: "long" }),
+          fullDate: today
             .toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
@@ -878,9 +774,9 @@ This is your one-time welcome message.`);
                   : "th";
               return day + suffix;
             }),
-          fullMonth: `${new Date().toLocaleDateString("en-US", {
+          fullMonth: `${today.toLocaleDateString("en-US", {
             month: "long",
-          })} ${new Date().getFullYear()}`,
+          })} ${today.getFullYear()}`,
         };
 
         const subjournalPageUid = await getOrCreatePageUid(subjournalInfo.name);
@@ -893,427 +789,332 @@ This is your one-time welcome message.`);
           subjournalInfo.color
         );
 
-        console.log(`🎯 ✅ Block created successfully: ${newBlockUid}`);
+        console.log(`🎯 ✅ Block created: ${newBlockUid}`);
 
         // Focus Mode activation
         setTimeout(async () => {
           try {
-            console.log(`🎯 FOCUS MODE: Activating professional Focus Mode`);
-
             await window.roamAlphaAPI.ui.mainWindow.openBlock({
               block: { uid: newBlockUid },
             });
 
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            const verification = {
-              urlContainsBlock: window.location.href.includes(newBlockUid),
-              hasBreadcrumbs: !!document.querySelector(
-                ".rm-zoom-item, .zoom-path"
-              ),
-              targetVisible: !!document.querySelector(`[id*="${newBlockUid}"]`),
-            };
-
-            const positiveCount =
-              Object.values(verification).filter(Boolean).length;
-            const success = positiveCount >= 2;
-
-            if (success) {
-              console.log(
-                `🎯 ✅ FOCUS MODE SUCCESS: ${positiveCount}/3 indicators positive`
-              );
-              console.log(
-                `🎯 🎉 USER EXPERIENCE: Professional Focus Mode activated!`
-              );
-
-              // Cursor positioning
-              const multiUserMode = isMultiUserMode();
-              if (multiUserMode) {
-                setTimeout(async () => {
-                  try {
-                    const blockData = window.roamAlphaAPI.pull(
-                      "[:block/string]",
-                      [":block/uid", newBlockUid]
-                    );
-                    const content = blockData?.[":block/string"] || "";
-                    if (content.length > 0) {
-                      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                        "block-uid": newBlockUid,
-                        selection: {
-                          start: content.length,
-                          end: content.length,
-                        },
-                      });
-                    }
-                  } catch (cursorError) {
-                    console.log("🎯 Cursor positioning error:", cursorError);
-                  }
-                }, 500);
-              }
-            } else {
-              console.log(`🎯 ⚠ Focus Mode verification failed`);
-            }
+            console.log("🎯 ✅ FOCUS MODE activated!");
           } catch (focusError) {
-            console.error("🎯 ❌ Focus Mode error:", focusError);
+            console.error("🎯 Focus Mode error:", focusError);
           }
         }, 200);
 
-        console.log(
-          `✅ FOCUS MODE SUCCESS: Direct entry created with revolutionary Focus Mode UX!`
-        );
+        console.log(`✅ Direct entry created in Focus Mode!`);
       } catch (error) {
-        console.error("❌ Error in focus mode:", error);
+        console.error("❌ Error in direct entry:", error);
         alert(`❌ Error: ${error.message}`);
       }
     }
 
-    // ==================== 1.10 🔄 UNIFIED UI MANAGEMENT ====================
+    // ==================== HELPER FUNCTIONS ====================
 
-    async function updateUI() {
-      const context = await getPageContext();
+    function parseDatePage(title) {
+      const match = DATE_PAGE_REGEX.exec(title);
+      if (!match) return null;
 
-      if (context.context === "date") {
-        // On date page - show dropdown for subjournal selection
-        if (needsOnboarding()) {
-          console.log(
-            "🛠️ First-time user detected - creating default structure"
-          );
-          const created = await createDefaultStructure();
-          if (created) showOnboardingGuidance();
-        }
-        createDatePageButton();
-      } else if (context.context === "subjournal") {
-        // On subjournal page - show direct entry button
-        createSubjournalPageButton(context.subjournalInfo);
-      } else {
-        // Neither - remove any existing buttons
-        const existingButton = document.querySelector(".subjournals-trigger");
-        if (existingButton) existingButton.remove();
-      }
+      const [, month, day, suffix, year] = match;
+      return {
+        month,
+        day: parseInt(day),
+        year: parseInt(year),
+        dayName: new Date(
+          parseInt(year),
+          getMonthIndex(month),
+          parseInt(day)
+        ).toLocaleDateString("en-US", { weekday: "long" }),
+        fullDate: title,
+        fullMonth: `${month} ${year}`,
+      };
     }
 
-    function scheduleUpdate() {
-      clearTimeout(updateTimer);
-      updateTimer = setTimeout(updateUI, 300);
+    function getMonthIndex(monthName) {
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      return months.indexOf(monthName);
     }
 
-    // ==================== 1.11 🎨 ENHANCED STYLING - SMALLER BUTTONS ====================
+    async function getOrCreatePageUid(title) {
+      let pageUid = window.roamAlphaAPI.q(
+        `[:find ?uid :where [?e :node/title "${title}"] [?e :block/uid ?uid]]`
+      )?.[0]?.[0];
+      if (pageUid) return pageUid;
 
-    const style = document.createElement("style");
-    style.textContent = `
-      /* 🎨 MAIN TRIGGER BUTTON - 33% SMALLER */
-      .subjournals-trigger {
-        position: absolute; right: 36px; z-index: 9999; display: flex;
-        border: 1px solid #8B4513; border-radius: 6px; background: rgb(251, 238, 166);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.15); transition: all 0.2s ease; overflow: hidden;
-        font-size: 14px; 
-      }
-      .subjournals-trigger:hover { background: #FFF700; }
-      
-      /* 🎨 INDIVIDUAL BUTTONS - PROPORTIONALLY SMALLER */
-      .subjournals-info, .subjournals-main, .subjournals-dismiss {
-        background: transparent; border: none; cursor: pointer; color: #8B4513;
-        transition: all 0.2s ease; border-radius: 0; font-size: 10px; /* Reduced */
-      }
-      .subjournals-info:hover, .subjournals-main:hover, .subjournals-dismiss:hover {
-        background: rgba(139, 69, 19, 0.1);
-      }
-      
-      /* 🎨 BUTTON SIZING */
-      .subjournals-info { 
-        border-right: 1px solid #8B4513; 
-        padding: 6px 8px; /* Reduced from 8px 10px */
-        font-size: 10px; /* Reduced from 14px */
-      }
-      .subjournals-main { 
-        padding: 9px 13px; /* Reduced from 12px 16px */
-        flex: 1; white-space: nowrap; 
-        font-size: 14px; /* Slightly larger for readability */
-        font-weight: bold;
-      }
-      .subjournals-dismiss { 
-        border-left: 1px solid #8B4513; 
-        padding: 5px 7px; /* Reduced from 8px 10px */
-        font-size: 11px; /* Reduced from 12px */
-        min-width: 24px; /* Reduced from 30px */
-      }
-      
-      /* 🎨 DROPDOWN - PROPORTIONALLY SMALLER */
-      .subjournals-dropdown {
-        position: absolute; z-index: 9999; background: white; border: 1px solid #8B4513;
-        border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-        box-sizing: border-box; font-size: 13px; /* Reduced from 14px */
-      }
-      
-      .subjournals-option {
-        padding: 7px 10px; /* Reduced from 10px 15px */
-        cursor: pointer; border-bottom: 1px solid #f0f0f0;
-        transition: background 0.2s ease; font-size: 13px; /* Reduced from 14px */
-        font-weight: 500;
-      }
-      .subjournals-option:hover { background: #f8f9fa !important; }
-      .subjournals-option:last-child { border-bottom: none; }
-      
-      /* 🎨 COLOR BORDERS - SLIGHTLY THINNER */
-      .subjournals-dropdown .subjournals-option[data-color="red"] { 
-        border-left: 2px solid #e74c3c !important; color: #e74c3c !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="orange"] { 
-        border-left: 2px solid #e67e22 !important; color: #e67e22 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="yellow"] { 
-        border-left: 2px solid #f1c40f !important; color: #f1c40f !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="green"] { 
-        border-left: 2px solid #27ae60 !important; color: #27ae60 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="blue"] { 
-        border-left: 2px solid #3498db !important; color: #3498db !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="purple"] { 
-        border-left: 2px solid #9b59b6 !important; color: #9b59b6 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="brown"] { 
-        border-left: 2px solid #8b4513 !important; color: #8b4513 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="grey"] { 
-        border-left: 2px solid #95a5a6 !important; color: #95a5a6 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="white"] { 
-        border-left: 2px solid #ecf0f1 !important; color: #2c3e50 !important; 
-      }
-      .subjournals-dropdown .subjournals-option[data-color="black"] { 
-        border-left: 2px solid #2c3e50 !important; color: #2c3e50 !important; 
-      }
+      pageUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.page.create({
+        page: { title, uid: pageUid },
+      });
+      return pageUid;
+    }
 
-      /* 🎨 SUBJOURNAL MODE INDICATOR (SUBTLE DIFFERENCE) */
-      .subjournals-trigger.subjournal-mode {
-        border-color: #27ae60; /* Green border for subjournal pages */
-      }
-      .subjournals-trigger.subjournal-mode .subjournals-main {
-        color: #27ae60; /* Green text for subjournal mode */
-      }
-    `;
-    document.head.appendChild(style);
+    async function getOrCreateJournalEntriesBlock(pageUid) {
+      const allBlocks = window.roamAlphaAPI.q(
+        `[:find ?uid ?string :where [?page :block/uid "${pageUid}"] [?child :block/page ?page] [?child :block/uid ?uid] [?child :block/string ?string]]`
+      );
+      const journalBlock = allBlocks.find(
+        ([uid, string]) => string?.trim() === "Journal Entries:"
+      );
+      if (journalBlock) return journalBlock[0];
 
-    // ==================== 1.12 🚀 INITIALIZATION ====================
+      const blockUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.block.create({
+        location: { "parent-uid": pageUid, order: 0 },
+        block: { uid: blockUid, string: "Journal Entries:" },
+      });
+      return blockUid;
+    }
 
-    const observer = new MutationObserver((mutations) => {
-      const hasPageChanges = mutations.some((mutation) =>
-        Array.from(mutation.addedNodes).some(
-          (node) =>
-            node.nodeType === 1 &&
-            (node.querySelector?.(".rm-title-display") ||
-              node.classList?.contains("rm-title-display") ||
-              node.querySelector?.("[data-page-links]"))
-        )
+    async function createDateEntry(journalUid, dateInfo, color) {
+      const colorTag = COLOR_MAP[color.toLowerCase()] || COLOR_MAP.blue;
+
+      // Create year block
+      let yearUid = await findOrCreateStructureBlock(
+        journalUid,
+        `#st0 [[${dateInfo.year}]]`,
+        `#st0 [[${dateInfo.year}]] #${colorTag}`
       );
 
-      if (hasPageChanges) scheduleUpdate();
-    });
+      // Create month block
+      let monthUid = await findOrCreateStructureBlock(
+        yearUid,
+        `#st0 [[${dateInfo.fullMonth}]]`,
+        `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`
+      );
 
-    observer.observe(document.body, { childList: true, subtree: true });
+      // Create date block
+      let dateUid = await findOrCreateStructureBlock(
+        monthUid,
+        `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`,
+        `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`
+      );
 
-    let currentUrl = window.location.href;
-    const urlCheckInterval = setInterval(() => {
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-        scheduleUpdate();
-      }
-    }, 500);
+      // Create content block
+      const contentUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.block.create({
+        location: { "parent-uid": dateUid, order: 0 },
+        block: { uid: contentUid, string: "" },
+      });
 
-    // Enhanced settings panel
-    extensionAPI.settings.panel.create({
-      tabTitle: "Full Featured Subjournals",
-      settings: [
-        {
-          id: "multiUserMode",
-          name: "Multi-user Mode",
-          description:
-            "Enable collaborative features: repositioned buttons and automatic username tagging",
-          action: {
-            type: "switch",
-            onChange: (newValue) => {
-              console.log(`🎮 Multi-user mode changed to: ${newValue}`);
-              setTimeout(scheduleUpdate, 100);
-            },
-          },
-        },
-        {
-          id: "preferredMode",
-          name: "Preferred Navigation Mode",
-          description:
-            "Choose your preferred navigation: Sidebar (traditional) or Focus Mode (immersive)",
-          action: {
-            type: "select",
-            items: ["sidebar", "focus", "ask"],
-            onChange: (newValue) => {
-              console.log(`🎯 Preferred mode changed to: ${newValue}`);
-            },
-          },
-        },
-      ],
-    });
+      return contentUid;
+    }
 
-    // Initial UI update
-    scheduleUpdate();
+    // ==================== 🔥 BULLETPROOF STRUCTURE BLOCK DETECTION ====================
 
-    // ==================== 1.13 🧪 COMPREHENSIVE TESTING SUITE ====================
+    async function findOrCreateStructureBlock(
+      parentUid,
+      searchPattern,
+      createContent
+    ) {
+      try {
+        // 🔥 AGGRESSIVE FILTERING: Only get blocks that actually reference the "st0" page
+        const children = window.roamAlphaAPI.q(
+          `[:find ?uid ?string 
+            :where 
+            [?parent :block/uid "${parentUid}"] 
+            [?child :block/parents ?parent] 
+            [?child :block/uid ?uid] 
+            [?child :block/string ?string]
+            [?st0-page :node/title "st0"]
+            [?child :block/refs ?st0-page]]`
+        );
 
-    window.fullFeaturedSubjournalsTest = {
-      // Context detection
-      getPageContext: async () => await getPageContext(),
-      getSubjournals: () => getSubjournals(),
+        console.log(
+          `🔍 Found ${children.length} blocks with #st0 tag under parent ${parentUid}`
+        );
 
-      // UI management
-      updateUI: async () => await updateUI(),
-      scheduleUpdate: () => scheduleUpdate(),
-
-      // Mode testing
-      isMultiUserMode: () => isMultiUserMode(),
-      toggleMultiUserMode: () => {
-        const current = extensionAPI.settings.get("multiUserMode");
-        const newValue = !current;
-        extensionAPI.settings.set("multiUserMode", newValue);
-        scheduleUpdate();
-        return newValue;
-      },
-
-      // Core functionality testing
-      testSidebarMode: async (subjournalName = null, color = "blue") => {
-        if (!subjournalName) {
-          const subjournals = getSubjournals();
-          if (subjournals.length === 0) return false;
-          subjournalName = subjournals[0].name;
-          color = subjournals[0].color;
-        }
-        console.log(`🧪 Testing SIDEBAR mode for ${subjournalName}`);
-        await handleSubjournalSelection(subjournalName, color);
-        return true;
-      },
-
-      testFocusMode: async (subjournalName = null, color = "blue") => {
-        if (!subjournalName) {
-          const subjournals = getSubjournals();
-          if (subjournals.length === 0) return false;
-          subjournalName = subjournals[0].name;
-          color = subjournals[0].color;
-        }
-        console.log(`🧪 Testing FOCUS mode for ${subjournalName}`);
-        await handleDirectEntry({ name: subjournalName, color });
-        return true;
-      },
-
-      testBothModes: async () => {
-        const subjournals = getSubjournals();
-        if (subjournals.length === 0) {
-          console.log("🧪 No subjournals configured");
-          return false;
-        }
-
-        const firstSubjournal = subjournals[0];
-        console.log(`🧪 Testing BOTH modes with ${firstSubjournal.name}`);
-
-        try {
-          console.log("🧪 1. Testing sidebar mode...");
-          await handleSubjournalSelection(
-            firstSubjournal.name,
-            firstSubjournal.color
-          );
-
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          console.log("🧪 2. Testing focus mode...");
-          await handleDirectEntry(firstSubjournal);
-
-          console.log("🧪 ✅ Both modes tested successfully!");
-          return true;
-        } catch (error) {
-          console.error("🧪 ❌ Both modes test failed:", error);
-          return false;
-        }
-      },
-
-      // Advanced testing
-      testColorAgnosticReuse: async () => {
-        try {
-          console.log("🧪 Testing color-agnostic hierarchy reuse...");
-          const context = await getPageContext();
-
-          if (context.context !== "date") {
-            console.log("🧪 Not on a date page, creating test structure...");
-            return false;
-          }
-
-          const testPageUid = window.roamAlphaAPI.util.generateUID();
-          const journalUid = await getOrCreateJournalEntriesBlock(testPageUid);
-
-          console.log("🧪 Creating first entry with BLUE...");
-          await createDateEntry(journalUid, context.dateInfo, "blue");
-
+        // Now search within the filtered set for the specific pattern (without #st0 since we already filtered for it)
+        const existing = children.find(
+          ([uid, string]) =>
+            string && string.includes(searchPattern.replace("#st0 ", ""))
+        );
+        if (existing) {
           console.log(
-            "🧪 Creating second entry with RED (should reuse hierarchy)..."
+            `🎯 Found existing structure block with pattern: "${searchPattern}"`
           );
-          await createDateEntry(journalUid, context.dateInfo, "red");
-
-          console.log("🧪 ✅ Color-agnostic reuse test complete!");
-          return true;
-        } catch (error) {
-          console.error("🧪 ❌ Color reuse test failed:", error);
-          return false;
+          return existing[0];
         }
-      },
 
-      // Debug functions
-      debugCurrentState: async () => {
-        const context = await getPageContext();
-        const subjournals = getSubjournals();
-        const multiUser = isMultiUserMode();
+        console.log(
+          `🏗️ Creating new structure block with pattern: "${searchPattern}"`
+        );
+        const blockUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": parentUid, order: 0 },
+          block: { uid: blockUid, string: createContent },
+        });
+        return blockUid;
+      } catch (error) {
+        console.error("Error in findOrCreateStructureBlock:", error);
+        throw error;
+      }
+    }
 
-        return {
-          pageContext: context,
-          availableSubjournals: subjournals,
-          multiUserMode: multiUser,
-          buttonVisible: !!document.querySelector(".subjournals-trigger"),
-          currentUrl: window.location.href,
-          version: "Full Featured v3.0",
-        };
-      },
+    // ==================== ONBOARDING ====================
 
-      createTestStructure: async () => await createDefaultStructure(),
-      needsOnboarding: () => needsOnboarding(),
-    };
+    function needsOnboarding() {
+      try {
+        const configPageUid = window.roamAlphaAPI.q(
+          `[:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]`
+        )?.[0]?.[0];
+        if (!configPageUid) return true;
+        const blocks = window.roamAlphaAPI.q(
+          `[:find ?uid ?string :where [?page :block/uid "${configPageUid}"] [?child :block/page ?page] [?child :block/uid ?uid] [?child :block/string ?string]]`
+        );
+        return !blocks.some(
+          ([uid, string]) => string?.trim() === "My Subjournals:"
+        );
+      } catch (error) {
+        return true;
+      }
+    }
 
-    console.log("✅ Full Featured Subjournals v3.0 loaded successfully!");
-    console.log(
-      "🎯 ULTIMATE EDITION: Dual navigation modes with bulletproof reliability"
-    );
-    console.log(
-      "🎨 UI: Smaller, less obtrusive buttons with same great design"
-    );
-    console.log("📱 Context-aware: Works on date pages AND subjournal pages");
-    console.log(
-      "🚀 Navigation: Sidebar mode + Focus Mode for complete workflow coverage"
-    );
-    console.log(
-      "🧪 Test functions available at window.fullFeaturedSubjournalsTest"
-    );
+    async function createDefaultStructure() {
+      try {
+        console.log("🛠️ Creating [[roam/subjournals]] structure...");
+        const pageUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.page.create({
+          page: { title: "roam/subjournals", uid: pageUid },
+        });
 
-    // Return cleanup manifest for professional lifecycle
-    return {
-      elements: [style],
-      observers: [observer],
-      timeouts: [urlCheckInterval],
-      unload: () => {
-        clearTimeout(updateTimer);
-        clearInterval(urlCheckInterval);
-        delete window.fullFeaturedSubjournalsTest;
-        console.log("🧹 Full Featured Subjournals v3.0 cleaned up");
-      },
-    };
+        const instructionUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 0 },
+          block: {
+            uid: instructionUid,
+            string:
+              "Welcome to Subjournals v4.1! List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
+          },
+        });
+
+        const subjournalsUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 1 },
+          block: { uid: subjournalsUid, string: "My Subjournals:" },
+        });
+
+        const samples = [
+          { name: "Therapy Journal", color: "blue" },
+          { name: "Project Ideas", color: "green" },
+          { name: "Health & Wellness", color: "red" },
+          { name: "Learning Notes", color: "purple" },
+        ];
+
+        for (let i = 0; i < samples.length; i++) {
+          const sampleUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": subjournalsUid, order: i },
+            block: { uid: sampleUid, string: samples[i].name },
+          });
+
+          const colorUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": sampleUid, order: 0 },
+            block: { uid: colorUid, string: `Color: ${samples[i].color}` },
+          });
+        }
+
+        console.log("✅ Default structure created successfully");
+        return true;
+      } catch (error) {
+        console.error("❌ Error creating default structure:", error);
+        return false;
+      }
+    }
+
+    function showOnboardingGuidance() {
+      if (hasShownOnboarding) return;
+      hasShownOnboarding = true;
+      setTimeout(() => {
+        alert(`📔 Welcome to Subjournals v4.1!
+
+✨ What's new:
+- Bulletproof structure filtering that prevents false positives
+- Enhanced debugging with detailed console logging
+- Rock-solid reliability for all hierarchical block creation
+- Better performance with aggressive tag filtering  
+
+🔧 I've created [[roam/subjournals]] with sample configuration.
+
+👆 Click the button to customize your subjournals!
+
+This is your one-time welcome message.`);
+      }, 1000);
+    }
+
+    // ==================== INITIALIZATION ====================
+
+    async function initialize() {
+      console.log(
+        "🚀 Initializing Subjournals v4.1 with bulletproof structure filtering..."
+      );
+
+      // Check for onboarding
+      if (needsOnboarding()) {
+        console.log("🛠️ First-time user detected - creating default structure");
+        const created = await createDefaultStructure();
+        if (created) showOnboardingGuidance();
+      }
+
+      // Register button with updated condition
+      buttonRegistry.registerButton(
+        "subjournals-main",
+        createSubjournalsButton,
+        shouldShowButton,
+        "top-right"
+      );
+
+      // Settings panel
+      extensionAPI.settings.panel.create({
+        tabTitle: "Subjournals v4.1",
+        settings: [
+          {
+            id: "debugMode",
+            name: "Debug Mode",
+            description: "Enable detailed console logging for troubleshooting",
+            action: { type: "switch" },
+          },
+        ],
+      });
+
+      console.log(
+        "✅ Subjournals v4.1 initialized with bulletproof structure filtering!"
+      );
+
+      return {
+        cleanup: () => {
+          buttonRegistry.removeButton("subjournals-main");
+          const existingDropdown = document.querySelector(
+            ".subjournals-dropdown"
+          );
+          if (existingDropdown) existingDropdown.remove();
+          if (dropdownStyle && dropdownStyle.parentNode) {
+            dropdownStyle.parentNode.removeChild(dropdownStyle);
+          }
+          console.log("🧹 Subjournals v4.1 cleaned up");
+        },
+      };
+    }
+
+    return initialize();
   },
 
   onunload: () => {
-    console.log("✅ Full Featured Subjournals v3.0 unloaded");
+    console.log("✅ Subjournals v4.1 unloaded");
   },
 };
