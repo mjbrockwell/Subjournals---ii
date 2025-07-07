@@ -1,930 +1,705 @@
 // ===================================================================
-// Simple Button Utility Extension 3.2.1 - Fixed Daily Note Detection
-// 🔧 FIXED: Robust daily note detection using page title instead of URL
-// 📅 ENHANCED: Weekly page detection conditions for Calendar Suite
-// ✅ GUARANTEED: 100% backward compatibility with existing extensions
-// 🚀 IMPROVED: Professional multi-section button architecture
+// 📔 FULL FEATURED SUBJOURNALS v4.1 - EVENT-DRIVEN + NEW CONFIG
+// 🚀 Pure event-driven architecture with zero polling
+// 🎯 New config location: roam/ext/subjournals/config
+// 🔄 Context-aware: Date pages vs Subjournal pages
+// 🏗️ Preserves critical cascading block creation with #st0 filtering
 // ===================================================================
 
-(() => {
-  "use strict";
+export default {
+  onload: ({ extensionAPI }) => {
+    console.log(
+      "📔 Full Featured Subjournals v4.1 loading - Event-Driven + New Config!"
+    );
 
-  const EXTENSION_NAME = "Simple Button Utility";
-  const EXTENSION_VERSION = "3.2.1"; // 🔧 FIXED: Daily note detection
-  const ANIMATION_DURATION = 200;
+    // ===================================================================
+    // 🎯 PURE EVENT-DRIVEN BUTTONS MANAGER - ZERO POLLING
+    // ===================================================================
 
-  // ==================== SECTION TYPE DEFINITIONS ====================
+    const EXTENSION_NAME = "Subjournals Button Manager";
+    const EXTENSION_VERSION = "4.1.0";
 
-  const SECTION_TYPES = {
-    icon: {
-      defaultStyle: {
-        padding: "8px 10px",
-        minWidth: "32px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+    // ==================== SECTION TYPE DEFINITIONS ====================
+
+    const SECTION_TYPES = {
+      icon: {
+        defaultStyle: {
+          padding: "8px 10px",
+          minWidth: "32px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        purpose: "Configuration, status indicators",
       },
-      purpose: "Configuration, status indicators",
-    },
-    main: {
-      defaultStyle: {
-        padding: "8px 16px",
-        fontWeight: "600",
-        flex: "1",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+      main: {
+        defaultStyle: {
+          padding: "8px 16px",
+          fontWeight: "600",
+          flex: "1",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        purpose: "Primary action button",
       },
-      purpose: "Primary action button",
-    },
-    action: {
-      defaultStyle: {
-        padding: "8px 12px",
-        minWidth: "36px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+      action: {
+        defaultStyle: {
+          padding: "8px 12px",
+          minWidth: "36px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        purpose: "Secondary actions",
       },
-      purpose: "Secondary actions",
-    },
-    dismiss: {
-      defaultStyle: {
-        padding: "8px 10px",
-        color: "#8b4513",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "14px",
-        fontWeight: "bold",
+      dismiss: {
+        defaultStyle: {
+          padding: "8px 10px",
+          color: "#8b4513",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "14px",
+          fontWeight: "bold",
+        },
+        purpose: "Hide button (automatically added)",
       },
-      purpose: "Hide button (automatically added)",
-    },
-  };
+    };
 
-  // ==================== BUTTON STACK CONFIGURATION ====================
+    // ==================== CENTRALIZED PAGE TITLE DETECTION ====================
 
-  const BUTTON_STACKS = {
-    "top-left": {
-      maxButtons: 5,
-      positions: [
-        { x: 20, y: 60 },
-        { x: 20, y: 110 },
-        { x: 20, y: 160 },
-        { x: 20, y: 210 },
-        { x: 20, y: 260 },
-      ],
-    },
-    "top-right": {
-      maxButtons: 5,
-      positions: [
-        { x: -20, y: 60 },
-        { x: -20, y: 110 },
-        { x: -20, y: 160 },
-        { x: -20, y: 210 },
-        { x: -20, y: 260 },
-      ],
-    },
-  };
-
-  // ==================== CENTRALIZED PAGE TITLE DETECTION ====================
-
-  function getCurrentPageTitle() {
-    try {
-      const titleSelectors = [
-        ".roam-article h1",
-        ".rm-page-title",
-        ".rm-title-display",
-        "[data-page-title]",
-        ".rm-page-title-text",
-        ".roam-article > div:first-child h1",
-        "h1[data-page-title]",
-      ];
-
-      for (const selector of titleSelectors) {
-        const element = document.querySelector(selector);
-        if (element?.textContent?.trim()) {
-          return element.textContent.trim();
-        }
-      }
-
-      const hash = window.location.hash;
-      if (hash) {
-        const match = hash.match(/#\/app\/[^\/]+\/page\/(.+)$/);
-        if (match) {
-          const encoded = match[1];
-          try {
-            return decodeURIComponent(encoded);
-          } catch (error) {
-            return encoded;
-          }
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.warn("❌ Error getting page title:", error);
-      return null;
-    }
-  }
-
-  // ==================== SIMPLE PAGE CHANGE DETECTOR ====================
-
-  class SimplePageChangeDetector {
-    constructor() {
-      this.listeners = new Set();
-      this.currentUrl = window.location.href;
-      this.currentTitle = getCurrentPageTitle();
-      this.isMonitoring = false;
-      this.observer = null;
-    }
-
-    startMonitoring() {
-      if (this.isMonitoring) return;
-
-      this.observer = new MutationObserver(() => {
-        this.checkPageChange();
-      });
-
-      this.observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
-
-      window.addEventListener("popstate", () => this.checkPageChange());
-      window.addEventListener("hashchange", () => this.checkPageChange());
-
-      this.isMonitoring = true;
-      console.log("🔍 Simple page change detection started");
-    }
-
-    stopMonitoring() {
-      if (this.observer) {
-        this.observer.disconnect();
-        this.observer = null;
-      }
-
-      this.isMonitoring = false;
-      console.log("🔍 Simple page change detection stopped");
-    }
-
-    checkPageChange() {
-      const newUrl = window.location.href;
-      const newTitle = getCurrentPageTitle();
-
-      if (newUrl !== this.currentUrl || newTitle !== this.currentTitle) {
-        this.currentUrl = newUrl;
-        this.currentTitle = newTitle;
-
-        this.listeners.forEach((listener) => {
-          try {
-            listener({ url: newUrl, title: newTitle });
-          } catch (error) {
-            console.error("❌ Page change listener error:", error);
-          }
-        });
-      }
-    }
-
-    onPageChange(listener) {
-      this.listeners.add(listener);
-      return () => this.listeners.delete(listener);
-    }
-  }
-
-  // ==================== BUTTON CONDITIONS (Fixed Daily Note Detection) ====================
-
-  const ButtonConditions = {
-    isUsernamePage: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-
-      if (window.GraphMemberCache?.isMember) {
-        const isCachedMember = window.GraphMemberCache.isMember(pageTitle);
-        if (window.SimpleButtonRegistry?.debugMode) {
-          console.log(
-            `🎯 Cache-based username detection for "${pageTitle}": ${isCachedMember}`
-          );
-        }
-        return isCachedMember;
-      }
-
-      const isFirstLastPattern = /^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(pageTitle);
-      const isUsernamePattern = /^[a-zA-Z][a-zA-Z0-9_-]{2,}$/.test(pageTitle);
-      const result = isFirstLastPattern || isUsernamePattern;
-
-      if (window.SimpleButtonRegistry?.debugMode) {
-        console.log(
-          `⚠️ Fallback regex username detection for "${pageTitle}":`,
-          {
-            isFirstLastPattern,
-            isUsernamePattern,
-            result,
-          }
-        );
-      }
-      return result;
-    },
-
-    isChatRoom: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-      const lowerTitle = pageTitle.toLowerCase();
-      const containsChatRoom = lowerTitle.includes("chat room");
-      if (window.SimpleButtonRegistry?.debugMode) {
-        console.log(
-          `🗨️ Chat room detection for "${pageTitle}": ${containsChatRoom}`
-        );
-      }
-      return containsChatRoom;
-    },
-
-    // 🔧 FIXED: Robust daily note detection using page title instead of URL
-    isDailyNote: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-
-      // 🎯 ROBUST: Check actual page title format (same as Subjournals extension)
-      const DATE_PAGE_REGEX =
-        /^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{1,2})(st|nd|rd|th), (\d{4})$/;
-
-      const isDate = DATE_PAGE_REGEX.test(pageTitle);
-
-      if (window.SimpleButtonRegistry?.debugMode) {
-        console.log(`📅 Daily note detection for "${pageTitle}": ${isDate}`);
-      }
-
-      return isDate;
-    },
-
-    isMainPage: () => {
-      return (
-        !!document.querySelector(".roam-article") &&
-        window.location.href.includes("/page/")
-      );
-    },
-
-    isSettingsPage: () => {
-      return (
-        window.location.href.includes("/settings") ||
-        window.location.href.includes("roam/settings")
-      );
-    },
-
-    // Monthly page detection for Calendar Suite
-    isMonthlyPage: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-
-      // Matches "January 2025", "February 2024", etc.
-      const isMonthly =
-        /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/.test(
-          pageTitle
-        );
-
-      if (window.SimpleButtonRegistry?.debugMode) {
-        console.log(
-          `📅 Monthly page detection for "${pageTitle}": ${isMonthly}`
-        );
-      }
-
-      return isMonthly;
-    },
-
-    // Enhanced condition to check if monthly page has NO content
-    isEmptyMonthlyPage: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-
-      // First check if it's a monthly page
-      const isMonthly =
-        /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/.test(
-          pageTitle
-        );
-      if (!isMonthly) return false;
-
-      // Then check if it has calendar content
+    function getCurrentPageTitle() {
       try {
-        const pageUid = window.roamAlphaAPI?.data?.q(
-          `[:find ?uid . :in $ ?title :where [?page :node/title ?title] [?page :block/uid ?uid]]`,
-          pageTitle
-        );
+        const titleSelectors = [
+          ".roam-article h1",
+          ".rm-page-title",
+          ".rm-title-display",
+          "[data-page-title]",
+          ".rm-page-title-text",
+          ".roam-article > div:first-child h1",
+          "h1[data-page-title]",
+        ];
 
-        if (!pageUid) return true; // Page doesn't exist = empty
+        for (const selector of titleSelectors) {
+          const titleElement = document.querySelector(selector);
+          if (titleElement) {
+            const titleText = titleElement.textContent?.trim();
+            if (titleText && titleText !== "") {
+              return titleText;
+            }
+          }
+        }
 
-        const children = window.roamAlphaAPI?.data?.q(
-          `[:find (pull ?child [:block/string]) :in $ ?page-uid :where [?page :block/uid ?page-uid] [?page :block/children ?child]]`,
-          pageUid
-        );
+        if (document.title && document.title !== "Roam") {
+          const titleText = document.title
+            .replace(" - Roam", "")
+            .replace(" | Roam Research", "")
+            .trim();
+          if (titleText && titleText !== "") {
+            return titleText;
+          }
+        }
 
-        if (!children || children.length === 0) return true; // No content
+        const url = window.location.href;
+        const pageMatch = url.match(/\/page\/([^/?#]+)/);
+        if (pageMatch) {
+          const pageId = decodeURIComponent(pageMatch[1]);
+          return pageId;
+        }
 
-        // Check if has week-related content
-        const hasWeekContent = children.some((child) => {
-          const blockText = child[0]?.string || "";
-          return (
-            blockText.includes("Week") ||
-            blockText.includes("Monday") ||
-            blockText.includes("TODO")
-          );
+        return null;
+      } catch (error) {
+        console.error("❌ Failed to get current page title:", error);
+        return null;
+      }
+    }
+
+    // ==================== BUTTON STACK POSITIONING ====================
+
+    const BUTTON_STACKS = {
+      "top-left": {
+        maxButtons: 2,
+        positions: [
+          { x: 14, y: 6 },
+          { x: 14, y: 54 },
+        ],
+      },
+      "top-right": {
+        maxButtons: 5,
+        positions: [
+          { x: -14, y: 6 },
+          { x: -14, y: 54 },
+          { x: -14, y: 102 },
+          { x: -14, y: 150 },
+          { x: -14, y: 198 },
+        ],
+      },
+    };
+
+    // ==================== 🚀 PURE EVENT-DRIVEN PAGE DETECTOR ====================
+
+    class PureEventPageDetector {
+      constructor() {
+        this.currentUrl = window.location.href;
+        this.listeners = new Set();
+        this.isActive = false;
+      }
+
+      startListening() {
+        if (this.isActive) return;
+
+        this.setupHistoryListeners();
+        this.setupFocusListeners();
+        this.setupRoamListeners();
+
+        this.isActive = true;
+        console.log("🎯 Pure event-driven detection started");
+      }
+
+      setupHistoryListeners() {
+        // ✅ PURE EVENT: History API changes only
+        this.boundPopState = () => this.handleNavigationChange();
+        window.addEventListener("popstate", this.boundPopState);
+
+        // Intercept programmatic navigation
+        this.originalPushState = history.pushState;
+        this.originalReplaceState = history.replaceState;
+
+        const self = this;
+        history.pushState = function (...args) {
+          self.originalPushState.apply(history, args);
+          self.handleNavigationChange();
+        };
+
+        history.replaceState = function (...args) {
+          self.originalReplaceState.apply(history, args);
+          self.handleNavigationChange();
+        };
+      }
+
+      setupFocusListeners() {
+        // ✅ PURE EVENT: Only check when user returns to tab
+        this.boundFocus = () => {
+          const newUrl = window.location.href;
+          if (newUrl !== this.currentUrl) {
+            this.handleNavigationChange();
+          }
+        };
+        window.addEventListener("focus", this.boundFocus);
+      }
+
+      setupRoamListeners() {
+        // ✅ PURE EVENT: Listen for Roam's content loading events
+        document.addEventListener("roam:page:loaded", () => {
+          this.handleNavigationChange();
         });
 
-        if (window.SimpleButtonRegistry?.debugMode) {
-          console.log(
-            `📅 Empty monthly page detection for "${pageTitle}": ${!hasWeekContent} (${
-              children.length
-            } blocks, hasWeekContent: ${hasWeekContent})`
-          );
+        // ✅ PURE EVENT: Efficient title monitoring
+        if (document.head) {
+          this.titleObserver = new MutationObserver(() => {
+            if (document.title !== this.currentTitle) {
+              this.currentTitle = document.title;
+              this.handleNavigationChange();
+            }
+          });
+
+          this.titleObserver.observe(document.head, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+          });
         }
-
-        return !hasWeekContent; // Empty if no week content
-      } catch (error) {
-        if (window.SimpleButtonRegistry?.debugMode) {
-          console.warn("⚠️ Error checking monthly page content:", error);
-        }
-        return true; // Assume empty on error
-      }
-    },
-
-    // Weekly page detection for Calendar Suite
-    isWeeklyPage: () => {
-      const pageTitle = getCurrentPageTitle();
-      if (!pageTitle) return false;
-
-      // Use Calendar Utilities if available for accurate detection
-      if (window.CalendarUtilities?.WeeklyUtils?.isWeeklyPage) {
-        const isWeekly =
-          window.CalendarUtilities.WeeklyUtils.isWeeklyPage(pageTitle);
-
-        if (window.SimpleButtonRegistry?.debugMode) {
-          console.log(
-            `📅 Weekly page detection (CalendarUtilities) for "${pageTitle}": ${isWeekly}`
-          );
-        }
-
-        return isWeekly;
       }
 
-      // Fallback regex for weekly pattern: "MM/DD YYYY - MM/DD YYYY"
-      const weeklyPattern = /^\d{2}\/\d{2}\s+\d{4}\s+-\s+\d{2}\/\d{2}\s+\d{4}$/;
-      const isWeekly = weeklyPattern.test(pageTitle);
+      handleNavigationChange() {
+        const newUrl = window.location.href;
+        if (newUrl !== this.currentUrl) {
+          console.log(
+            `📄 Pure event navigation: ${this.currentUrl} → ${newUrl}`
+          );
+          this.currentUrl = newUrl;
 
-      if (window.SimpleButtonRegistry?.debugMode) {
-        console.log(
-          `📅 Weekly page detection (fallback regex) for "${pageTitle}": ${isWeekly}`
+          // ✅ SINGLE EVENT: Notify all listeners once
+          this.listeners.forEach((listener) => {
+            try {
+              listener({ url: newUrl, timestamp: Date.now() });
+            } catch (error) {
+              console.error("❌ Navigation listener error:", error);
+            }
+          });
+        }
+      }
+
+      onPageChange(listener) {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+      }
+
+      cleanup() {
+        window.removeEventListener("popstate", this.boundPopState);
+        window.removeEventListener("focus", this.boundFocus);
+
+        if (this.originalPushState) history.pushState = this.originalPushState;
+        if (this.originalReplaceState)
+          history.replaceState = this.originalReplaceState;
+        if (this.titleObserver) this.titleObserver.disconnect();
+
+        this.isActive = false;
+        console.log("🛑 Pure event detection stopped");
+      }
+    }
+
+    // ==================== BUTTON CONDITIONS ====================
+
+    const ButtonConditions = {
+      isDailyNote: () => {
+        const url = window.location.href;
+        return (
+          /\/page\/\d{2}-\d{2}-\d{4}/.test(url) ||
+          /\/page\/\d{4}-\d{2}-\d{2}/.test(url) ||
+          /\/page\/[A-Z][a-z]+.*\d{4}/.test(url)
         );
+      },
+
+      isMainPage: () => {
+        return (
+          !!document.querySelector(".roam-article") &&
+          window.location.href.includes("/page/")
+        );
+      },
+
+      custom: (conditionFn) => {
+        if (!conditionFn || typeof conditionFn !== "function") {
+          return false;
+        }
+        try {
+          return conditionFn();
+        } catch (error) {
+          console.error("❌ Custom condition error:", error);
+          return false;
+        }
+      },
+    };
+
+    // ==================== 🚀 EVENT-DRIVEN BUTTON REGISTRY ====================
+
+    class EventDrivenButtonRegistry {
+      constructor() {
+        this.registeredButtons = new Map();
+        this.activeButtons = new Map();
+        this.stacks = { "top-left": [], "top-right": [] };
+        this.containerCache = null;
+        this.lastPageContext = null;
+        this.pageDetector = new PureEventPageDetector();
       }
 
-      return isWeekly;
-    },
+      async initialize() {
+        // ✅ PURE EVENT: Only rebuild on actual navigation
+        this.pageDetector.onPageChange(({ url }) => {
+          this.handlePageChange(url);
+        });
 
-    custom: (conditionFn) => {
-      if (!conditionFn || typeof conditionFn !== "function") {
-        return false;
+        // ✅ PURE EVENT: Only rebuild when container actually changes
+        this.setupContainerWatcher();
+
+        this.pageDetector.startListening();
+        this.buildInitialButtons();
+
+        console.log("✅ Event-driven button registry initialized");
+        return true;
       }
-      try {
-        return conditionFn();
-      } catch (error) {
-        console.error("❌ Custom condition error:", error);
-        return false;
+
+      setupContainerWatcher() {
+        // ✅ EFFICIENT: Only watch for container-level changes
+        const containerObserver = new MutationObserver((mutations) => {
+          let containerChanged = false;
+
+          mutations.forEach((mutation) => {
+            // Only care about container-level changes
+            mutation.addedNodes.forEach((node) => {
+              if (
+                node.nodeType === 1 &&
+                (node.classList?.contains("roam-article") ||
+                  node.querySelector?.(".roam-article"))
+              ) {
+                containerChanged = true;
+              }
+            });
+
+            mutation.removedNodes.forEach((node) => {
+              if (
+                node === this.containerCache ||
+                node.contains?.(this.containerCache)
+              ) {
+                containerChanged = true;
+                this.containerCache = null;
+              }
+            });
+          });
+
+          if (containerChanged) {
+            console.log("📦 Container change detected - rebuilding buttons");
+            this.rebuildAllButtons();
+          }
+        });
+
+        // ✅ TARGETED: Only watch document body for major structural changes
+        containerObserver.observe(document.body, {
+          childList: true,
+          subtree: false, // Don't watch deep changes
+        });
       }
-    },
-  };
 
-  // ==================== SIMPLE BUTTON REGISTRY v3.2.1 ====================
+      async handlePageChange(url) {
+        console.log("🔄 Event-driven page change:", url);
 
-  class SimpleButtonRegistry {
-    constructor() {
-      this.registeredButtons = new Map();
-      this.activeButtons = new Map();
-      this.stacks = { "top-left": [], "top-right": [] };
-      this.container = null;
-      this.debugMode = false;
-      this.pageDetector = new SimplePageChangeDetector();
+        // ✅ SMART: Only rebuild if context actually changed
+        const newContext = await getPageContext();
+        const contextChanged =
+          JSON.stringify(newContext) !== JSON.stringify(this.lastPageContext);
 
-      this.pageDetector.onPageChange(() => {
+        if (contextChanged) {
+          console.log("📄 Page context changed - rebuilding buttons");
+          this.lastPageContext = newContext;
+          this.rebuildAllButtons();
+        } else {
+          console.log("📄 Same context - no rebuild needed");
+        }
+      }
+
+      buildInitialButtons() {
+        // Initial button build on startup
         this.rebuildAllButtons();
-      });
-    }
+      }
 
-    async initialize() {
-      this.setupContainer();
-      this.pageDetector.startMonitoring();
-      this.rebuildAllButtons();
-      console.log(
-        "✅ Simple Button Registry v3.2.1 initialized with fixed daily note detection"
-      );
-      return true;
-    }
+      // ✅ CACHED: Container detection with caching
+      getCurrentContainer() {
+        if (this.containerCache && document.contains(this.containerCache)) {
+          return this.containerCache;
+        }
 
-    setupContainer() {
-      this.container = null;
-      console.log("✅ Container setup configured for dynamic detection");
-    }
-
-    getCurrentContainer() {
-      const candidates = [
-        ".roam-article",
-        ".roam-main .roam-article",
-        ".roam-main",
-      ];
-      for (const selector of candidates) {
-        const element = document.querySelector(selector);
-        if (element && document.contains(element)) {
-          if (getComputedStyle(element).position === "static") {
-            element.style.position = "relative";
+        const candidates = [
+          ".roam-article",
+          ".roam-main",
+          ".roam-center-panel",
+        ];
+        for (const selector of candidates) {
+          const element = document.querySelector(selector);
+          if (element && document.contains(element)) {
+            if (getComputedStyle(element).position === "static") {
+              element.style.position = "relative";
+            }
+            this.containerCache = element;
+            return element;
           }
-          return element;
         }
-      }
-      console.warn("⚠️ No suitable container found, using document.body");
-      return document.body;
-    }
 
-    // ==================== CORE REBUILD LOGIC ====================
-
-    rebuildAllButtons() {
-      console.log("🔄 Rebuilding all buttons for current page");
-
-      this.clearAllButtons();
-      this.clearAllStacks();
-
-      const visibleButtons = [];
-      this.registeredButtons.forEach((config) => {
-        if (this.shouldButtonBeVisible(config)) {
-          visibleButtons.push(config);
-        }
-      });
-
-      if (visibleButtons.length === 0) {
-        return;
+        this.containerCache = document.body;
+        return document.body;
       }
 
-      this.assignButtonsToStacks(visibleButtons);
-      this.placeAllStackedButtons();
+      // ✅ EFFICIENT: Only rebuild when necessary
+      rebuildAllButtons() {
+        this.clearAllButtons();
+        this.clearAllStacks();
 
-      console.log(
-        `✅ Placed ${this.activeButtons.size}/${this.registeredButtons.size} buttons`
-      );
-    }
+        const visibleButtons = Array.from(this.registeredButtons.values())
+          .filter((config) => this.shouldButtonBeVisible(config))
+          .sort((a, b) => (a.priority ? -1 : 0) - (b.priority ? -1 : 0));
 
-    clearAllButtons() {
-      this.activeButtons.forEach((button) => {
-        if (button.parentNode) {
-          button.remove();
-        }
-      });
-      this.activeButtons.clear();
-    }
-
-    clearAllStacks() {
-      this.stacks = { "top-left": [], "top-right": [] };
-    }
-
-    assignButtonsToStacks(buttons) {
-      const priorityButtons = buttons.filter((b) => b.priority);
-      const regularButtons = buttons.filter((b) => !b.priority);
-
-      [...priorityButtons, ...regularButtons].forEach((config) => {
-        this.assignButtonToStack(config);
-      });
-    }
-
-    assignButtonToStack(config) {
-      const targetStack = config.stack || "top-right";
-      const stackConfig = BUTTON_STACKS[targetStack];
-
-      if (this.stacks[targetStack].length < stackConfig.maxButtons) {
-        this.stacks[targetStack].push(config);
-        console.log(
-          `📍 Button "${config.id}" assigned to ${targetStack} slot ${this.stacks[targetStack].length}`
-        );
-      } else {
-        console.warn(
-          `⚠️ Button "${config.id}" skipped - no slots available in ${targetStack}`
-        );
-      }
-    }
-
-    placeAllStackedButtons() {
-      Object.keys(this.stacks).forEach((stackName) => {
-        this.stacks[stackName].forEach((config, index) => {
-          this.createAndPlaceButton(config, stackName, index);
+        visibleButtons.forEach((config) => {
+          this.assignButtonToStack(config);
         });
-      });
-    }
 
-    // ==================== ✨ COMPOUND BUTTON DETECTION ====================
+        this.placeAllStackedButtons();
 
-    createAndPlaceButton(config, stackName, stackIndex) {
-      if (
-        config.sections &&
-        Array.isArray(config.sections) &&
-        config.sections.length > 0
-      ) {
+        console.log(
+          `✅ Event-driven rebuild complete (${this.activeButtons.size} buttons)`
+        );
+      }
+
+      clearAllButtons() {
+        this.activeButtons.forEach((element) => {
+          element.remove();
+        });
+        this.activeButtons.clear();
+      }
+
+      clearAllStacks() {
+        this.stacks["top-left"] = [];
+        this.stacks["top-right"] = [];
+      }
+
+      assignButtonToStack(config) {
+        const targetStack = config.stack || "top-right";
+        const stackConfig = BUTTON_STACKS[targetStack];
+
+        if (this.stacks[targetStack].length < stackConfig.maxButtons) {
+          this.stacks[targetStack].push(config);
+          console.log(
+            `📍 Button "${config.id}" assigned to ${targetStack} slot ${this.stacks[targetStack].length}`
+          );
+        } else {
+          console.warn(
+            `⚠️ Button "${config.id}" skipped - no slots available in ${targetStack}`
+          );
+        }
+      }
+
+      placeAllStackedButtons() {
+        Object.keys(this.stacks).forEach((stackName) => {
+          this.stacks[stackName].forEach((config, index) => {
+            this.createAndPlaceButton(config, stackName, index);
+          });
+        });
+      }
+
+      createAndPlaceButton(config, stackName, stackIndex) {
         console.log(
           `🔧 Creating compound button "${config.id}" with ${config.sections.length} sections`
         );
         return this.createCompoundButton(config, stackName, stackIndex);
-      } else {
+      }
+
+      createCompoundButton(config, stackName, stackIndex) {
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.position = "absolute";
+        buttonContainer.style.display = "flex";
+        buttonContainer.style.alignItems = "stretch";
+        buttonContainer.style.zIndex = "10000";
+        buttonContainer.style.borderRadius = "12px";
+        buttonContainer.style.overflow = "hidden";
+        buttonContainer.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
+        buttonContainer.style.transition = "all 200ms ease";
+        buttonContainer.style.background =
+          "linear-gradient(135deg, #fffbeb, #fef3c7)";
+        buttonContainer.style.border = "1.5px solid #8b4513";
+
+        const stackConfig = BUTTON_STACKS[stackName];
+        const position = stackConfig.positions[stackIndex];
+
+        // Process sections and auto-add dismiss if not present
+        let sections = [...config.sections];
+        const hasDismissSection = sections.some(
+          (section) => section.type === "dismiss"
+        );
+        if (!hasDismissSection) {
+          sections.push({
+            type: "dismiss",
+            content: "✕",
+            onClick: () =>
+              this.dismissCompoundButton(config.id, buttonContainer),
+          });
+        }
+
+        // Create each section
+        sections.forEach((section, index) => {
+          const sectionElement = this.createSection(
+            section,
+            index,
+            sections.length,
+            config,
+            stackName,
+            stackIndex,
+            buttonContainer
+          );
+          buttonContainer.appendChild(sectionElement);
+        });
+
+        // Position the container
+        if (position.x < 0) {
+          buttonContainer.style.right = `${Math.abs(position.x)}px`;
+          buttonContainer.style.left = "auto";
+        } else {
+          buttonContainer.style.left = `${position.x}px`;
+          buttonContainer.style.right = "auto";
+        }
+        buttonContainer.style.top = `${position.y}px`;
+
+        // Container hover effects
+        buttonContainer.addEventListener("mouseenter", () => {
+          buttonContainer.style.transform = "translateY(-1px)";
+          buttonContainer.style.boxShadow =
+            "0 6px 16px rgba(245, 158, 11, 0.4)";
+        });
+
+        buttonContainer.addEventListener("mouseleave", () => {
+          buttonContainer.style.transform = "translateY(0)";
+          buttonContainer.style.boxShadow =
+            "0 4px 12px rgba(245, 158, 11, 0.3)";
+        });
+
+        const container = this.getCurrentContainer();
+        container.appendChild(buttonContainer);
+        this.activeButtons.set(config.id, buttonContainer);
+
         console.log(
-          `🔧 Creating simple button "${config.id}" (backward compatible)`
+          `✅ Compound button "${config.id}" placed at ${stackName} #${
+            stackIndex + 1
+          } with ${sections.length} sections`
         );
-        return this.createSimpleButton(config, stackName, stackIndex);
-      }
-    }
-
-    // ==================== ✅ SIMPLE BUTTON (100% BACKWARD COMPATIBLE) ====================
-
-    createSimpleButton(config, stackName, stackIndex) {
-      const buttonContainer = document.createElement("div");
-      buttonContainer.style.position = "absolute";
-      buttonContainer.style.display = "flex";
-      buttonContainer.style.alignItems = "center";
-      buttonContainer.style.zIndex = "10000";
-
-      const mainButton = document.createElement("button");
-      mainButton.textContent = config.text;
-
-      const stackConfig = BUTTON_STACKS[stackName];
-      const position = stackConfig.positions[stackIndex];
-
-      Object.assign(mainButton.style, {
-        padding: "8px 12px",
-        paddingRight: "32px",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        fontSize: "14px",
-        fontWeight: "600",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        cursor: "pointer",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-        transition: "all 200ms ease",
-        userSelect: "none",
-        ...config.style,
-      });
-
-      const dismissButton = document.createElement("span");
-      dismissButton.textContent = "×";
-      Object.assign(dismissButton.style, {
-        position: "absolute",
-        right: "8px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        color: "#8b4513",
-        fontSize: "16px",
-        fontWeight: "bold",
-        cursor: "pointer",
-        padding: "2px 4px",
-        borderRadius: "3px",
-        transition: "background 200ms ease",
-      });
-
-      dismissButton.addEventListener("mouseenter", () => {
-        dismissButton.style.background = "rgba(220, 38, 38, 0.8)";
-        dismissButton.style.color = "white";
-      });
-      dismissButton.addEventListener("mouseleave", () => {
-        dismissButton.style.background = "transparent";
-        dismissButton.style.color = "#8b4513";
-      });
-      dismissButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.dismissButton(config.id, buttonContainer);
-      });
-
-      mainButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        try {
-          if (config.onClick) {
-            config.onClick();
-          }
-        } catch (error) {
-          console.error(`❌ Button "${config.id}" click error:`, error);
-        }
-      });
-
-      buttonContainer.appendChild(mainButton);
-      buttonContainer.appendChild(dismissButton);
-
-      if (position.x < 0) {
-        buttonContainer.style.right = `${Math.abs(position.x)}px`;
-        buttonContainer.style.left = "auto";
-      } else {
-        buttonContainer.style.left = `${position.x}px`;
-        buttonContainer.style.right = "auto";
-      }
-      buttonContainer.style.top = `${position.y}px`;
-
-      buttonContainer.addEventListener("mouseenter", () => {
-        buttonContainer.style.transform = "translateY(-1px)";
-        mainButton.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-      });
-
-      buttonContainer.addEventListener("mouseleave", () => {
-        buttonContainer.style.transform = "translateY(0)";
-        mainButton.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-      });
-
-      const container = this.getCurrentContainer();
-      container.appendChild(buttonContainer);
-      this.activeButtons.set(config.id, buttonContainer);
-
-      console.log(
-        `✅ Simple button "${config.id}" placed at ${stackName} #${
-          stackIndex + 1
-        }`
-      );
-    }
-
-    // ==================== 🚀 COMPOUND BUTTON (NEW FUNCTIONALITY) ====================
-
-    createCompoundButton(config, stackName, stackIndex) {
-      const buttonContainer = document.createElement("div");
-      buttonContainer.style.position = "absolute";
-      buttonContainer.style.display = "flex";
-      buttonContainer.style.alignItems = "center";
-      buttonContainer.style.zIndex = "10000";
-      buttonContainer.style.borderRadius = "8px";
-      buttonContainer.style.overflow = "hidden";
-      buttonContainer.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-      buttonContainer.style.transition = "all 200ms ease";
-
-      const stackConfig = BUTTON_STACKS[stackName];
-      const position = stackConfig.positions[stackIndex];
-
-      let sections = [...config.sections];
-      const hasDismissSection = sections.some(
-        (section) => section.type === "dismiss"
-      );
-      if (!hasDismissSection) {
-        sections.push({
-          type: "dismiss",
-          content: "×",
-          onClick: () => this.dismissCompoundButton(config.id, buttonContainer),
-        });
       }
 
-      sections.forEach((section, index) => {
-        const sectionElement = this.createSection(
-          section,
-          index,
-          sections.length,
-          config,
-          stackName,
-          stackIndex
-        );
-        buttonContainer.appendChild(sectionElement);
-      });
+      createSection(
+        section,
+        index,
+        totalSections,
+        buttonConfig,
+        stackName,
+        stackIndex,
+        buttonContainer
+      ) {
+        const sectionElement = document.createElement("div");
 
-      if (position.x < 0) {
-        buttonContainer.style.right = `${Math.abs(position.x)}px`;
-        buttonContainer.style.left = "auto";
-      } else {
-        buttonContainer.style.left = `${position.x}px`;
-        buttonContainer.style.right = "auto";
-      }
-      buttonContainer.style.top = `${position.y}px`;
+        // Get section type configuration
+        const sectionType = SECTION_TYPES[section.type] || SECTION_TYPES.action;
 
-      buttonContainer.addEventListener("mouseenter", () => {
-        buttonContainer.style.transform = "translateY(-1px)";
-        buttonContainer.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-      });
-
-      buttonContainer.addEventListener("mouseleave", () => {
-        buttonContainer.style.transform = "translateY(0)";
-        buttonContainer.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-      });
-
-      const container = this.getCurrentContainer();
-      container.appendChild(buttonContainer);
-      this.activeButtons.set(config.id, buttonContainer);
-
-      console.log(
-        `✅ Compound button "${config.id}" placed at ${stackName} #${
-          stackIndex + 1
-        } with ${sections.length} sections`
-      );
-    }
-
-    createSection(
-      section,
-      index,
-      totalSections,
-      buttonConfig,
-      stackName,
-      stackIndex
-    ) {
-      const sectionElement = document.createElement("div");
-      const sectionType = SECTION_TYPES[section.type];
-
-      // 🎨 Calculate border-radius for perfect rounded corners
-      let borderRadius = {};
-      if (index === 0) {
-        // First section - round left corners
-        borderRadius.borderTopLeftRadius = "8px";
-        borderRadius.borderBottomLeftRadius = "8px";
-      }
-      if (index === totalSections - 1) {
-        // Last section - round right corners
-        borderRadius.borderTopRightRadius = "8px";
-        borderRadius.borderBottomRightRadius = "8px";
-      }
-
-      Object.assign(sectionElement.style, {
-        ...sectionType.defaultStyle,
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        color: "white",
-        fontSize: "14px",
-        borderRight:
-          index < totalSections - 1
-            ? "1px solid rgba(255,255,255,0.2)"
-            : "none",
-        transition: "all 200ms ease",
-        cursor: "pointer",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        userSelect: "none",
-        ...borderRadius, // 🎨 Apply calculated border-radius
-        ...section.style,
-      });
-
-      sectionElement.textContent = section.content || "";
-
-      if (section.tooltip) {
-        sectionElement.title = section.tooltip;
-      }
-
-      sectionElement.addEventListener("mouseenter", () => {
-        sectionElement.style.background =
-          section.type === "dismiss"
-            ? "rgba(220, 38, 38, 0.8)"
-            : section.style?.background || "#6366f1";
-        sectionElement.style.color =
-          section.type === "dismiss"
-            ? "white"
-            : section.style?.color || "white";
-      });
-
-      sectionElement.addEventListener("mouseleave", () => {
-        sectionElement.style.background =
-          section.style?.background ||
-          "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-        sectionElement.style.color =
-          section.type === "dismiss" ? "#8b4513" : "#333";
-      });
-
-      sectionElement.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        try {
-          if (section.onClick) {
-            section.onClick({
-              sectionType: section.type,
-              sectionIndex: index,
-              buttonId: buttonConfig.id,
-              buttonStack: stackName,
-              buttonPosition: stackIndex + 1,
-              currentPage: {
-                url: window.location.href,
-                title: getCurrentPageTitle(),
-              },
-            });
-          }
-        } catch (error) {
-          console.error(`❌ Section "${section.type}" click error:`, error);
-        }
-      });
-
-      return sectionElement;
-    }
-
-    dismissButton(buttonId, buttonContainer) {
-      console.log(`🗑️ Dismissing button "${buttonId}"`);
-      if (buttonContainer.parentNode) {
-        buttonContainer.remove();
-      }
-      this.activeButtons.delete(buttonId);
-      console.log(`✅ Button "${buttonId}" dismissed`);
-    }
-
-    dismissCompoundButton(buttonId, buttonContainer) {
-      console.log(`🗑️ Dismissing compound button "${buttonId}"`);
-      if (buttonContainer.parentNode) {
-        buttonContainer.remove();
-      }
-      this.activeButtons.delete(buttonId);
-      console.log(`✅ Compound button "${buttonId}" dismissed`);
-    }
-
-    // ==================== VISIBILITY AND CONDITION LOGIC ====================
-
-    shouldButtonBeVisible(config) {
-      const { showOn, hideOn, condition } = config;
-
-      if (this.debugMode) {
-        console.group(`🔍 Evaluating visibility for button "${config.id}"`);
-        console.log("Button config:", {
-          showOn,
-          hideOn,
-          condition: !!condition,
-        });
-        console.log("Current page:", {
-          url: window.location.href,
-          title: getCurrentPageTitle(),
-        });
-      }
-
-      if (condition && typeof condition === "function") {
-        try {
-          const result = condition();
-          if (this.debugMode) {
-            console.log(`Custom condition result: ${result}`);
-            console.groupEnd();
-          }
-          return result;
-        } catch (error) {
-          console.error(`❌ Custom condition error for "${config.id}":`, error);
-          if (this.debugMode) {
-            console.groupEnd();
-          }
-          return false;
-        }
-      }
-
-      if (showOn) {
-        const conditionResults = showOn.map((conditionName) => {
-          const hasCondition = ButtonConditions[conditionName]
-            ? ButtonConditions[conditionName]()
-            : false;
-          if (this.debugMode) {
-            console.log(`Condition "${conditionName}": ${hasCondition}`);
-          }
-          return hasCondition;
+        // Apply base styling with warm theme
+        Object.assign(sectionElement.style, {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          userSelect: "none",
+          transition: "all 150ms ease",
+          backgroundColor: "transparent",
+          color: "#78716c",
+          fontSize: "13px",
+          fontWeight: "600",
+          whiteSpace: "nowrap",
+          ...sectionType.defaultStyle,
         });
 
-        const shouldShow = conditionResults.some((result) => result);
-        if (this.debugMode) {
-          console.log(
-            `showOn evaluation: ${shouldShow} (${conditionResults.join(", ")})`
-          );
+        // Apply custom section styles
+        if (section.style) {
+          Object.assign(sectionElement.style, section.style);
         }
 
-        if (!shouldShow) {
-          if (this.debugMode) {
-            console.log("❌ Button hidden by showOn rules");
-            console.groupEnd();
-          }
-          return false;
+        // Add visual separators between sections
+        if (index > 0) {
+          sectionElement.style.borderLeft = "1px solid #8b4513";
         }
-      }
 
-      if (hideOn) {
-        const hideResults = hideOn.map((conditionName) => {
-          const shouldHide = ButtonConditions[conditionName]
-            ? ButtonConditions[conditionName]()
-            : false;
-          if (this.debugMode) {
-            console.log(`Hide condition "${conditionName}": ${shouldHide}`);
+        // Set section content
+        if (section.content) {
+          if (typeof section.content === "string") {
+            sectionElement.textContent = section.content;
+          } else {
+            sectionElement.appendChild(section.content);
           }
-          return shouldHide;
+        }
+
+        // Add tooltip if provided
+        if (section.tooltip) {
+          sectionElement.setAttribute("title", section.tooltip);
+        }
+
+        // Section-specific hover effects
+        sectionElement.addEventListener("mouseenter", () => {
+          switch (section.type) {
+            case "dismiss":
+              sectionElement.style.backgroundColor = "rgba(220, 53, 69, 0.1)";
+              sectionElement.style.color = "#dc3545";
+              break;
+            case "icon":
+              sectionElement.style.backgroundColor = "rgba(245, 158, 11, 0.2)";
+              break;
+            case "main":
+              sectionElement.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
+              break;
+            default:
+              sectionElement.style.backgroundColor = "rgba(139, 69, 19, 0.1)";
+          }
         });
 
-        const shouldHide = hideResults.some((result) => result);
-        if (this.debugMode) {
-          console.log(
-            `hideOn evaluation: ${shouldHide} (${hideResults.join(", ")})`
-          );
-        }
+        sectionElement.addEventListener("mouseleave", () => {
+          sectionElement.style.backgroundColor = "transparent";
+          sectionElement.style.color =
+            section.type === "dismiss" ? "#8b4513" : "#78716c";
+        });
 
-        if (shouldHide) {
-          if (this.debugMode) {
-            console.log("❌ Button hidden by hideOn rules");
-            console.groupEnd();
+        // Click handling
+        sectionElement.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          try {
+            if (section.onClick) {
+              section.onClick({
+                sectionType: section.type,
+                sectionIndex: index,
+                buttonId: buttonConfig.id,
+                buttonStack: stackName,
+                buttonPosition: stackIndex + 1,
+                currentPage: {
+                  url: window.location.href,
+                  title: getCurrentPageTitle(),
+                },
+                sectionElement: sectionElement,
+                buttonContainer: buttonContainer,
+              });
+            }
+          } catch (error) {
+            console.error(`❌ Section "${section.type}" click error:`, error);
           }
-          return false;
-        }
+        });
+
+        return sectionElement;
       }
 
-      if (this.debugMode) {
-        console.log("✅ Button should be visible");
-        console.groupEnd();
+      dismissCompoundButton(buttonId, buttonContainer) {
+        console.log(`🗑️ Dismissing compound button "${buttonId}"`);
+        if (buttonContainer.parentNode) {
+          buttonContainer.remove();
+        }
+        this.activeButtons.delete(buttonId);
+        console.log(`✅ Compound button "${buttonId}" dismissed`);
       }
 
-      return true;
-    }
+      shouldButtonBeVisible(config) {
+        const { showOn, hideOn, condition } = config;
 
-    // ==================== PUBLIC API ====================
-
-    registerButton(config) {
-      const { id, text, onClick, sections } = config;
-
-      if (sections) {
-        if (!Array.isArray(sections)) {
-          throw new Error(`Button "${id}" sections must be an array`);
+        if (condition && typeof condition === "function") {
+          try {
+            return condition();
+          } catch (error) {
+            console.error(
+              `❌ Custom condition error for "${config.id}":`,
+              error
+            );
+            return false;
+          }
         }
+
+        if (showOn) {
+          const shouldShow = showOn.some((conditionName) => {
+            return ButtonConditions[conditionName]
+              ? ButtonConditions[conditionName]()
+              : false;
+          });
+          if (!shouldShow) return false;
+        }
+
+        if (hideOn) {
+          const shouldHide = hideOn.some((conditionName) => {
+            return ButtonConditions[conditionName]
+              ? ButtonConditions[conditionName]()
+              : false;
+          });
+          if (shouldHide) return false;
+        }
+
+        return true;
+      }
+
+      registerButton(config) {
+        const { id, sections } = config;
+
+        if (!sections || !Array.isArray(sections)) {
+          throw new Error(`Button "${id}" must have sections array`);
+        }
+
         sections.forEach((section, index) => {
           if (!section.type) {
             throw new Error(`Button "${id}" section ${index} must have a type`);
@@ -935,429 +710,852 @@
             );
           }
         });
-      } else {
-        if (!id || !text || !onClick) {
-          throw new Error("Simple button must have id, text, and onClick");
+
+        if (this.registeredButtons.has(id)) {
+          throw new Error(`Button "${id}" already registered`);
         }
-      }
 
-      if (this.registeredButtons.has(id)) {
-        throw new Error(`Button "${id}" already registered`);
-      }
+        const stack = config.stack || "top-right";
+        if (!BUTTON_STACKS[stack]) {
+          throw new Error(
+            `Invalid stack: ${stack}. Must be: ${Object.keys(
+              BUTTON_STACKS
+            ).join(", ")}`
+          );
+        }
 
-      const stack = config.stack || "top-right";
-      if (!BUTTON_STACKS[stack]) {
-        throw new Error(
-          `Invalid stack: ${stack}. Must be: ${Object.keys(BUTTON_STACKS).join(
-            ", "
-          )}`
+        this.registeredButtons.set(id, {
+          id,
+          sections,
+          stack,
+          priority: config.priority || false,
+          showOn: config.showOn || null,
+          hideOn: config.hideOn || null,
+          condition: config.condition || null,
+          style: config.style || {},
+        });
+
+        if (this.pageDetector.isActive) {
+          this.rebuildAllButtons();
+        }
+
+        console.log(
+          `✅ Compound button "${id}" registered for ${stack} stack${
+            config.priority ? " (priority)" : ""
+          }`
         );
+
+        return { success: true, id, stack, type: "compound" };
       }
 
-      this.registeredButtons.set(id, {
-        id,
-        text: text || null,
-        onClick: onClick || null,
-        sections: sections || null,
-        stack,
-        priority: config.priority || false,
-        showOn: config.showOn || null,
-        hideOn: config.hideOn || null,
-        condition: config.condition || null,
-        style: config.style || {},
-      });
-
-      if (this.pageDetector.isMonitoring) {
-        this.rebuildAllButtons();
+      removeButton(id) {
+        const removed = this.registeredButtons.delete(id);
+        if (this.activeButtons.has(id)) {
+          this.activeButtons.get(id).remove();
+          this.activeButtons.delete(id);
+        }
+        if (removed) {
+          console.log(`🗑️ Button "${id}" removed`);
+        }
+        return removed;
       }
 
-      const buttonType = sections ? "compound" : "simple";
-      console.log(
-        `✅ ${buttonType} button "${id}" registered for ${stack} stack${
-          config.priority ? " (priority)" : ""
-        }`
+      cleanup() {
+        this.clearAllButtons();
+        this.clearAllStacks();
+        this.registeredButtons.clear();
+        this.pageDetector.cleanup();
+        console.log("🧹 Event-driven Button Registry cleaned up");
+      }
+    }
+
+    // ===================================================================
+    // 📔 SUBJOURNALS CORE FUNCTIONALITY
+    // ===================================================================
+
+    // ==================== CONFIGURATION CONSTANTS ====================
+
+    const DATE_PAGE_REGEX =
+      /^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{1,2})(st|nd|rd|th), (\d{4})$/;
+
+    const COLOR_MAP = {
+      red: "clr-lgt-red-act",
+      orange: "clr-lgt-orn-act",
+      yellow: "clr-lgt-ylo-act",
+      green: "clr-lgt-grn-act",
+      blue: "clr-lgt-blu-act",
+      purple: "clr-lgt-ppl-act",
+      brown: "clr-lgt-brn-act",
+      grey: "clr-lgt-gry-act",
+      white: "clr-wht-act",
+      black: "clr-blk-act",
+    };
+
+    // ✅ NEW CONFIG LOCATION
+    const CONFIG_PAGE_NAME = "roam/ext/subjournals/config";
+
+    // ==================== STATE MANAGEMENT ====================
+
+    let buttonRegistry;
+    let hasShownOnboarding = false;
+    let currentDropdown = null;
+
+    // ==================== PAGE CONTEXT DETECTION ====================
+
+    async function getPageContext() {
+      try {
+        const pageTitle = getCurrentPageTitle();
+        if (!pageTitle) return { context: "unknown" };
+
+        const isDate = DATE_PAGE_REGEX.test(pageTitle);
+        const subjournals = getSubjournals();
+        const matchingSubjournal = subjournals.find(
+          (s) => s.name === pageTitle
+        );
+
+        if (isDate) {
+          return {
+            context: "date",
+            pageTitle,
+            dateInfo: parseDatePage(pageTitle),
+          };
+        } else if (matchingSubjournal) {
+          return {
+            context: "subjournal",
+            pageTitle,
+            subjournalInfo: matchingSubjournal,
+          };
+        } else {
+          return { context: "other", pageTitle };
+        }
+      } catch (error) {
+        console.error("🔍 Error detecting page context:", error);
+        return { context: "error" };
+      }
+    }
+
+    function parseDatePage(title) {
+      const match = DATE_PAGE_REGEX.exec(title);
+      if (!match) return null;
+
+      const [, month, day, suffix, year] = match;
+      const date = new Date(
+        parseInt(year),
+        getMonthIndex(month),
+        parseInt(day)
+      );
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+      return {
+        month,
+        day: parseInt(day),
+        year: parseInt(year),
+        dayName,
+        fullDate: title,
+        fullMonth: `${month} ${year}`,
+      };
+    }
+
+    function getMonthIndex(monthName) {
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      return months.indexOf(monthName);
+    }
+
+    // ==================== ✅ CONFIGURATION READING - NEW LOCATION ====================
+
+    function getSubjournals() {
+      try {
+        const configPageUid = window.roamAlphaAPI.q(`
+          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+        `)?.[0]?.[0];
+
+        if (!configPageUid) return [];
+
+        const allBlocks = window.roamAlphaAPI.q(`
+          [:find ?uid ?string :where 
+           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
+           [?child :block/uid ?uid] [?child :block/string ?string]]
+        `);
+
+        const mySubjournalsBlock = allBlocks.find(
+          ([uid, string]) => string?.trim() === "My Subjournals:"
+        );
+        if (!mySubjournalsBlock) return [];
+
+        const parentUid = mySubjournalsBlock[0];
+        const childUids = window.roamAlphaAPI.q(`
+          [:find ?uid :where 
+           [?parent :block/uid "${parentUid}"] [?child :block/parents ?parent] [?child :block/uid ?uid]]
+        `);
+
+        const subjournals = [];
+        childUids.forEach(([uid]) => {
+          const childData = window.roamAlphaAPI.pull(
+            "[:block/uid :block/string {:block/children [:block/uid :block/string]}]",
+            [":block/uid", uid]
+          );
+
+          const name = childData[":block/string"]?.trim();
+          if (!name || /^color\s*:/i.test(name)) return;
+
+          let color = "blue";
+          const colorChildren = childData[":block/children"] || [];
+          const colorChild = colorChildren.find((grandchild) =>
+            /color\s*:/i.test(grandchild[":block/string"] || "")
+          );
+
+          if (colorChild) {
+            const colorMatch =
+              colorChild[":block/string"].match(/color\s*:\s*(\w+)/i);
+            if (colorMatch) color = colorMatch[1];
+          }
+
+          subjournals.push({ name, color });
+        });
+
+        return subjournals;
+      } catch (error) {
+        console.error("⚠ Error getting subjournals:", error);
+        return [];
+      }
+    }
+
+    // ==================== 🔥 CRITICAL: CASCADING BLOCK CREATION WITH #st0 FILTERING ====================
+
+    async function findOrCreateStructureBlock(
+      parentUid,
+      searchPattern,
+      createContent
+    ) {
+      try {
+        console.group(`🔍 CASCADING BLOCK: findOrCreateStructureBlock`);
+        console.log(`📍 Parent UID: ${parentUid}`);
+        console.log(`🔍 Search Pattern: "${searchPattern}"`);
+        console.log(`🏗️ Create Content: "${createContent}"`);
+
+        // 🚨 CRITICAL: Only search blocks that have #st0 tag AND match pattern
+        const children = window.roamAlphaAPI.q(`
+          [:find ?uid ?string 
+           :where 
+           [?parent :block/uid "${parentUid}"] 
+           [?child :block/parents ?parent] 
+           [?child :block/uid ?uid] 
+           [?child :block/string ?string]
+           [?st0-page :node/title "st0"]
+           [?child :block/refs ?st0-page]]
+        `);
+
+        console.log(`🔥 Filtered children with #st0 tag: ${children.length}`);
+
+        const searchWithoutSt0 = searchPattern.replace("#st0 ", "");
+        console.log(`🔍 Search pattern without #st0: "${searchWithoutSt0}"`);
+
+        const existing = children.find(
+          ([uid, string]) => string && string.includes(searchWithoutSt0)
+        );
+
+        if (existing) {
+          console.log(
+            `✅ FOUND EXISTING: UID: ${existing[0]} | Content: "${existing[1]}"`
+          );
+          console.groupEnd();
+          return existing[0];
+        }
+
+        console.log(`❌ NO MATCH FOUND - creating new structure block`);
+        console.log(`🏗️ Creating with content: "${createContent}"`);
+
+        const blockUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": parentUid, order: 0 },
+          block: { uid: blockUid, string: createContent },
+        });
+
+        console.log(`✅ Created new block with UID: ${blockUid}`);
+        console.groupEnd();
+        return blockUid;
+      } catch (error) {
+        console.error("❌ Error in findOrCreateStructureBlock:", error);
+        console.groupEnd();
+        throw error;
+      }
+    }
+
+    async function createDateEntry(journalUid, dateInfo, color) {
+      console.group(`🎯 CASCADING CREATION: createDateEntry`);
+      console.log(`📅 Date Info:`, dateInfo);
+      console.log(`🎨 Color: ${color}`);
+
+      const colorTag = COLOR_MAP[color.toLowerCase()] || COLOR_MAP.blue;
+
+      // 🔥 STEP 1: Year block (with #st0 filtering)
+      console.log(`\n🗓️ STEP 1: Creating/finding year block`);
+      const yearSearchPattern = `#st0 [[${dateInfo.year}]]`;
+      const yearCreateContent = `#st0 [[${dateInfo.year}]] #${colorTag}`;
+
+      const yearUid = await findOrCreateStructureBlock(
+        journalUid,
+        yearSearchPattern,
+        yearCreateContent
       );
 
-      return { success: true, id, stack, type: buttonType };
+      // 🔥 STEP 2: Month block (with #st0 filtering)
+      console.log(`\n📅 STEP 2: Creating/finding month block`);
+      const monthSearchPattern = `#st0 [[${dateInfo.fullMonth}]]`;
+      const monthCreateContent = `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`;
+
+      const monthUid = await findOrCreateStructureBlock(
+        yearUid,
+        monthSearchPattern,
+        monthCreateContent
+      );
+
+      // 🔥 STEP 3: Date block (with #st0 filtering)
+      console.log(`\n📆 STEP 3: Creating/finding date block`);
+      const dateSearchPattern = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`;
+      const dateCreateContent = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`;
+
+      const dateUid = await findOrCreateStructureBlock(
+        monthUid,
+        dateSearchPattern,
+        dateCreateContent
+      );
+
+      // 🔥 STEP 4: Content block (regular block, no #st0)
+      console.log(`\n📝 STEP 4: Creating content block`);
+      const contentUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.block.create({
+        location: { "parent-uid": dateUid, order: 0 },
+        block: { uid: contentUid, string: "" },
+      });
+
+      console.log(`✅ Content block UID: ${contentUid}`);
+      console.groupEnd();
+      return contentUid;
     }
 
-    removeButton(id) {
-      const removed = this.registeredButtons.delete(id);
-      if (this.activeButtons.has(id)) {
-        this.activeButtons.get(id).remove();
-        this.activeButtons.delete(id);
-      }
-      if (removed) {
-        console.log(`🗑️ Button "${id}" removed`);
-      }
-      return removed;
+    // ==================== HELPER FUNCTIONS ====================
+
+    async function getOrCreatePageUid(title) {
+      let pageUid = window.roamAlphaAPI.q(`
+        [:find ?uid :where [?e :node/title "${title}"] [?e :block/uid ?uid]]
+      `)?.[0]?.[0];
+
+      if (pageUid) return pageUid;
+
+      pageUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.page.create({
+        page: { title, uid: pageUid },
+      });
+      return pageUid;
     }
 
-    getStatus() {
+    async function getOrCreateJournalEntriesBlock(pageUid) {
+      const allBlocks = window.roamAlphaAPI.q(`
+        [:find ?uid ?string :where 
+         [?page :block/uid "${pageUid}"] [?child :block/page ?page]
+         [?child :block/uid ?uid] [?child :block/string ?string]]
+      `);
+
+      const journalBlock = allBlocks.find(
+        ([uid, string]) => string?.trim() === "Journal Entries:"
+      );
+      if (journalBlock) return journalBlock[0];
+
+      const blockUid = window.roamAlphaAPI.util.generateUID();
+      await window.roamAlphaAPI.data.block.create({
+        location: { "parent-uid": pageUid, order: 0 },
+        block: { uid: blockUid, string: "Journal Entries:" },
+      });
+      return blockUid;
+    }
+
+    // ==================== ✅ ONBOARDING - NEW LOCATION ====================
+
+    function needsOnboarding() {
+      try {
+        const configPageUid = window.roamAlphaAPI.q(`
+          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+        `)?.[0]?.[0];
+
+        if (!configPageUid) return true;
+
+        const blocks = window.roamAlphaAPI.q(`
+          [:find ?uid ?string :where 
+           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
+           [?child :block/uid ?uid] [?child :block/string ?string]]
+        `);
+
+        return !blocks.some(
+          ([uid, string]) => string?.trim() === "My Subjournals:"
+        );
+      } catch (error) {
+        return true;
+      }
+    }
+
+    async function createDefaultStructure() {
+      try {
+        console.log(`🛠️ Creating ${CONFIG_PAGE_NAME} structure...`);
+
+        const pageUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.page.create({
+          page: { title: CONFIG_PAGE_NAME, uid: pageUid },
+        });
+
+        const instructionUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 0 },
+          block: {
+            uid: instructionUid,
+            string:
+              "Welcome to Full Featured Subjournals v4.1! Pure event-driven architecture with new config location. List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
+          },
+        });
+
+        const subjournalsUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 1 },
+          block: { uid: subjournalsUid, string: "My Subjournals:" },
+        });
+
+        const samples = [
+          { name: "Therapy Journal", color: "blue" },
+          { name: "Project Ideas", color: "green" },
+          { name: "Health & Wellness", color: "red" },
+          { name: "Learning Notes", color: "purple" },
+        ];
+
+        for (let i = 0; i < samples.length; i++) {
+          const sampleUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": subjournalsUid, order: i },
+            block: { uid: sampleUid, string: samples[i].name },
+          });
+
+          const colorUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": sampleUid, order: 0 },
+            block: { uid: colorUid, string: `Color: ${samples[i].color}` },
+          });
+        }
+
+        console.log("✅ Default structure created successfully");
+        return true;
+      } catch (error) {
+        console.error("❌ Error creating default structure:", error);
+        return false;
+      }
+    }
+
+    function showOnboardingGuidance() {
+      if (hasShownOnboarding) return;
+      hasShownOnboarding = true;
+
+      setTimeout(() => {
+        alert(`📔 Welcome to Full Featured Subjournals v4.1!
+
+🎯 PURE EVENT-DRIVEN + NEW CONFIG LOCATION!
+
+✨ What's new in v4.1:
+- ⚡ Zero polling/monitoring - pure event-driven architecture
+- 📍 New config location: ${CONFIG_PAGE_NAME}
+- 🚀 Significant performance improvements
+- 🔄 Intelligent context-aware button management
+
+🔧 I've created ${CONFIG_PAGE_NAME} with sample configuration.
+
+👆 Click the [ℹ️] section to customize your subjournals!
+
+This is your one-time welcome message.`);
+      }, 1000);
+    }
+
+    // ==================== DROPDOWN FUNCTIONALITY ====================
+
+    function createDropdown(subjournals, triggerElement, mode = "sidebar") {
+      if (currentDropdown) {
+        currentDropdown.remove();
+        currentDropdown = null;
+      }
+
+      if (subjournals.length === 0) {
+        alert(
+          `⚠ No subjournals configured. Click the [ℹ️] button to set up ${CONFIG_PAGE_NAME}.`
+        );
+        return;
+      }
+
+      const dropdown = document.createElement("div");
+      dropdown.className = "subjournals-dropdown";
+
+      Object.assign(dropdown.style, {
+        position: "absolute",
+        zIndex: "10001",
+        background: "linear-gradient(135deg, #fffbeb, #fef3c7)",
+        border: "1.5px solid #8b4513",
+        boxShadow: "0 6px 16px rgba(245, 158, 11, 0.3)",
+        minWidth: "200px",
+        fontSize: "13px",
+      });
+
+      subjournals.forEach(({ name, color }) => {
+        const option = document.createElement("div");
+        option.className = "subjournals-option";
+        option.textContent = name;
+
+        const colorMap = {
+          red: "#e74c3c",
+          orange: "#e67e22",
+          yellow: "#f1c40f",
+          green: "#27ae60",
+          blue: "#3498db",
+          purple: "#9b59b6",
+          brown: "#8b4513",
+          grey: "#95a5a6",
+          white: "#ecf0f1",
+          black: "#2c3e50",
+        };
+
+        const colorValue = colorMap[color.toLowerCase()] || "#3498db";
+
+        Object.assign(option.style, {
+          padding: "10px 15px",
+          cursor: "pointer",
+          borderBottom: "1px solid rgba(139, 69, 19, 0.1)",
+          borderLeft: `3px solid ${colorValue}`,
+          color: colorValue,
+          fontWeight: "600",
+          transition: "all 150ms ease",
+        });
+
+        option.addEventListener("mouseenter", () => {
+          option.style.backgroundColor = "rgba(245, 158, 11, 0.1)";
+        });
+
+        option.addEventListener("mouseleave", () => {
+          option.style.backgroundColor = "transparent";
+        });
+
+        option.addEventListener("click", (e) => {
+          e.stopPropagation();
+          dropdown.remove();
+          currentDropdown = null;
+
+          console.log(
+            `🐇 Selected "${name}" with color "${color}" for ${mode} mode`
+          );
+
+          if (mode === "sidebar") {
+            handleSubjournalSelection(name, color);
+          } else {
+            handleDirectEntry({ name, color });
+          }
+        });
+
+        dropdown.appendChild(option);
+      });
+
+      // Position dropdown relative to button
+      const container = buttonRegistry.getCurrentContainer();
+
+      if (triggerElement && triggerElement.getBoundingClientRect) {
+        try {
+          const buttonRect = triggerElement.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+
+          dropdown.style.top = buttonRect.bottom - containerRect.top + 2 + "px";
+          dropdown.style.left = buttonRect.left - containerRect.left + "px";
+          dropdown.style.width = buttonRect.width + "px";
+
+          console.log(`📍 Dropdown positioned relative to button`);
+        } catch (error) {
+          console.warn("⚠️ Could not position dropdown, using fallback");
+          dropdown.style.top = "60px";
+          dropdown.style.right = "20px";
+        }
+      } else {
+        dropdown.style.top = "60px";
+        dropdown.style.right = "20px";
+      }
+
+      container.appendChild(dropdown);
+      currentDropdown = dropdown;
+
+      // Close dropdown when clicking outside
+      const closeDropdown = (e) => {
+        if (
+          !dropdown.contains(e.target) &&
+          (!triggerElement || !triggerElement.contains(e.target))
+        ) {
+          dropdown.remove();
+          currentDropdown = null;
+          document.removeEventListener("click", closeDropdown);
+        }
+      };
+
+      setTimeout(() => document.addEventListener("click", closeDropdown), 0);
+    }
+
+    // ==================== NAVIGATION MODES ====================
+
+    // MODE 1: Sidebar Navigation (from date pages)
+    async function handleSubjournalSelection(subjournalName, color) {
+      try {
+        const context = await getPageContext();
+        if (!context.dateInfo)
+          throw new Error("Current page is not a valid date page");
+
+        const subjournalPageUid = await getOrCreatePageUid(subjournalName);
+        const journalUid = await getOrCreateJournalEntriesBlock(
+          subjournalPageUid
+        );
+        const targetBlockUid = await createDateEntry(
+          journalUid,
+          context.dateInfo,
+          color
+        );
+
+        // Open in sidebar
+        await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+          window: { type: "outline", "block-uid": subjournalPageUid },
+        });
+
+        setTimeout(async () => {
+          try {
+            const windowId = `sidebar-outline-${subjournalPageUid}`;
+            await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+              location: { "block-uid": targetBlockUid, "window-id": windowId },
+            });
+            console.log("🎯 ✅ SIDEBAR FOCUS SUCCESS!");
+          } catch (focusError) {
+            console.error("🎯 ❌ Focus error:", focusError);
+          }
+        }, 800);
+
+        console.log(
+          `✅ SIDEBAR SUCCESS: Entry created in ${subjournalName} for ${context.dateInfo.fullDate}`
+        );
+      } catch (error) {
+        console.error("⚠ Error in sidebar mode:", error);
+        alert(`❌ Error: ${error.message}`);
+      }
+    }
+
+    // MODE 2: Focus Mode Navigation (from subjournal pages)
+    async function handleDirectEntry(subjournalInfo) {
+      try {
+        console.log(
+          `🎯 FOCUS MODE: Creating direct entry for ${subjournalInfo.name}`
+        );
+
+        const dateInfo = {
+          year: new Date().getFullYear(),
+          month: new Date().toLocaleDateString("en-US", { month: "long" }),
+          day: new Date().getDate(),
+          dayName: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+          fullDate: new Date()
+            .toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })
+            .replace(/(\d+)/, (match) => {
+              const day = parseInt(match);
+              const suffix =
+                day === 1 || day === 21 || day === 31
+                  ? "st"
+                  : day === 2 || day === 22
+                  ? "nd"
+                  : day === 3 || day === 23
+                  ? "rd"
+                  : "th";
+              return day + suffix;
+            }),
+          fullMonth: `${new Date().toLocaleDateString("en-US", {
+            month: "long",
+          })} ${new Date().getFullYear()}`,
+        };
+
+        const subjournalPageUid = await getOrCreatePageUid(subjournalInfo.name);
+        const journalUid = await getOrCreateJournalEntriesBlock(
+          subjournalPageUid
+        );
+        const newBlockUid = await createDateEntry(
+          journalUid,
+          dateInfo,
+          subjournalInfo.color
+        );
+
+        // Focus Mode activation
+        setTimeout(async () => {
+          try {
+            console.log(`🎯 FOCUS MODE: Activating focus mode`);
+            await window.roamAlphaAPI.ui.mainWindow.openBlock({
+              block: { uid: newBlockUid },
+            });
+            console.log("🎯 ✅ FOCUS MODE SUCCESS!");
+          } catch (focusError) {
+            console.error("🎯 ❌ Focus Mode error:", focusError);
+          }
+        }, 200);
+
+        console.log(`✅ FOCUS MODE SUCCESS: Direct entry created!`);
+      } catch (error) {
+        console.error("❌ Error in focus mode:", error);
+        alert(`❌ Error: ${error.message}`);
+      }
+    }
+
+    // ==================== BUTTON CREATION ====================
+
+    function createSubjournalsButton() {
+      return getPageContext().then((context) => {
+        if (context.context === "date") {
+          // Date page: Show dropdown for subjournal selection
+          return {
+            id: "subjournals-main",
+            sections: [
+              {
+                type: "icon",
+                content: "ℹ️",
+                tooltip: "Configure Subjournals",
+                onClick: () => {
+                  window.roamAlphaAPI.ui.mainWindow.openPage({
+                    page: { title: CONFIG_PAGE_NAME },
+                  });
+                },
+              },
+              {
+                type: "main",
+                content: "Add to Subjournal?",
+                onClick: (params) => {
+                  const subjournals = getSubjournals();
+                  createDropdown(
+                    subjournals,
+                    params.buttonContainer,
+                    "sidebar"
+                  );
+                },
+              },
+            ],
+            condition: () => context.context === "date",
+            stack: "top-right",
+          };
+        } else if (context.context === "subjournal") {
+          // Subjournal page: Show direct entry button
+          return {
+            id: "subjournals-main",
+            sections: [
+              {
+                type: "icon",
+                content: "ℹ️",
+                tooltip: "Configure Subjournals",
+                onClick: () => {
+                  window.roamAlphaAPI.ui.mainWindow.openPage({
+                    page: { title: CONFIG_PAGE_NAME },
+                  });
+                },
+              },
+              {
+                type: "main",
+                content: "Add entry to this page?",
+                onClick: () => {
+                  handleDirectEntry(context.subjournalInfo);
+                },
+              },
+            ],
+            condition: () => context.context === "subjournal",
+            stack: "top-right",
+          };
+        }
+
+        return null; // No button on other pages
+      });
+    }
+
+    // ==================== ✅ INITIALIZATION - EVENT-DRIVEN ====================
+
+    async function initialize() {
+      console.log(
+        "🚀 Initializing Full Featured Subjournals v4.1 - Event-Driven + New Config..."
+      );
+
+      // ✅ EVENT-DRIVEN: Initialize button registry with zero polling
+      buttonRegistry = new EventDrivenButtonRegistry();
+      await buttonRegistry.initialize();
+
+      // Check for onboarding
+      if (needsOnboarding()) {
+        console.log("🛠️ First-time user detected - creating default structure");
+        const created = await createDefaultStructure();
+        if (created) showOnboardingGuidance();
+      }
+
+      // Register the subjournals button with dynamic configuration
+      const buttonConfig = await createSubjournalsButton();
+      if (buttonConfig) {
+        buttonRegistry.registerButton(buttonConfig);
+      }
+
+      // ✅ EVENT-DRIVEN: Re-register button on page changes (no polling)
+      buttonRegistry.pageDetector.onPageChange(async () => {
+        buttonRegistry.removeButton("subjournals-main");
+        const newButtonConfig = await createSubjournalsButton();
+        if (newButtonConfig) {
+          buttonRegistry.registerButton(newButtonConfig);
+        }
+      });
+
+      // Settings panel
+      extensionAPI.settings.panel.create({
+        tabTitle: "Full Featured Subjournals v4.1",
+        settings: [
+          {
+            id: "debugMode",
+            name: "Debug Mode",
+            description: "Enable detailed console logging for troubleshooting",
+            action: { type: "switch" },
+          },
+          {
+            id: "performanceMode",
+            name: "Performance Mode",
+            description: "Enable performance monitoring and optimization",
+            action: { type: "switch" },
+          },
+        ],
+      });
+
+      console.log(
+        "✅ Full Featured Subjournals v4.1 initialized - Event-driven + New config location!"
+      );
+
       return {
-        version: EXTENSION_VERSION,
-        registeredButtons: this.registeredButtons.size,
-        activeButtons: this.activeButtons.size,
-        stacks: {
-          "top-left": {
-            buttons: this.stacks["top-left"].length,
-            max: BUTTON_STACKS["top-left"].maxButtons,
-            available:
-              BUTTON_STACKS["top-left"].maxButtons -
-              this.stacks["top-left"].length,
-            buttonIds: this.stacks["top-left"].map((b) => b.id),
-          },
-          "top-right": {
-            buttons: this.stacks["top-right"].length,
-            max: BUTTON_STACKS["top-right"].maxButtons,
-            available:
-              BUTTON_STACKS["top-right"].maxButtons -
-              this.stacks["top-right"].length,
-            buttonIds: this.stacks["top-right"].map((b) => b.id),
-          },
-        },
-        currentPage: {
-          url: window.location.href,
-          title: getCurrentPageTitle(),
-        },
-        buttonIds: {
-          registered: Array.from(this.registeredButtons.keys()),
-          active: Array.from(this.activeButtons.keys()),
-        },
-        capabilities: {
-          simpleButtons: true,
-          compoundButtons: true,
-          monthlyPageSupport: true,
-          weeklyPageSupport: true,
-          fixedDailyNoteDetection: true, // 🔧 NEW capability flag
-          sectionTypes: Object.keys(SECTION_TYPES),
+        cleanup: () => {
+          buttonRegistry.cleanup();
+          if (currentDropdown) currentDropdown.remove();
+          console.log("🧹 Full Featured Subjournals v4.1 cleaned up");
         },
       };
     }
 
-    cleanup() {
-      this.clearAllButtons();
-      this.clearAllStacks();
-      this.registeredButtons.clear();
-      this.pageDetector.stopMonitoring();
-      console.log("🧹 Simple Button Registry v3.2.1 cleaned up");
-    }
-  }
+    return initialize();
+  },
 
-  // ==================== EXTENSION MANAGER ====================
-
-  class SimpleExtensionButtonManager {
-    constructor(extensionName) {
-      this.extensionName = extensionName;
-      this.registry = null;
-      this.myButtons = new Set();
-    }
-
-    async initialize() {
-      if (!window.SimpleButtonRegistry) {
-        window.SimpleButtonRegistry = new SimpleButtonRegistry();
-        await window.SimpleButtonRegistry.initialize();
-      }
-      this.registry = window.SimpleButtonRegistry;
-      return true;
-    }
-
-    async registerButton(config) {
-      if (!this.registry) await this.initialize();
-
-      const buttonId = `${this.extensionName}-${config.id}`;
-      const result = this.registry.registerButton({
-        ...config,
-        id: buttonId,
-      });
-
-      if (result.success) {
-        this.myButtons.add(buttonId);
-      }
-
-      return result;
-    }
-
-    removeButton(id) {
-      const buttonId = `${this.extensionName}-${id}`;
-      const success = this.registry?.removeButton(buttonId);
-
-      if (success) {
-        this.myButtons.delete(buttonId);
-      }
-
-      return success;
-    }
-
-    cleanup() {
-      this.myButtons.forEach((buttonId) => {
-        this.registry?.removeButton(buttonId);
-      });
-      this.myButtons.clear();
-    }
-  }
-
-  // ==================== GLOBAL API ====================
-
-  window.SimpleButtonRegistry = null;
-  window.SimpleExtensionButtonManager = SimpleExtensionButtonManager;
-  window.ButtonConditions = ButtonConditions;
-
-  // ==================== TESTING UTILITIES ====================
-
-  window.SimpleButtonUtilityTests = {
-    testSimpleButton: async () => {
-      const manager = new SimpleExtensionButtonManager("CompatibilityTest");
-      await manager.initialize();
-
-      await manager.registerButton({
-        id: "simple-test",
-        text: "🧪 Simple Test",
-        onClick: () =>
-          console.log("Simple button clicked! (v2.1 compatibility)"),
-        showOn: ["isMainPage"],
-        stack: "top-right",
-      });
-
-      console.log("✅ Simple button compatibility test complete");
-    },
-
-    testCompoundButton: async () => {
-      const manager = new SimpleExtensionButtonManager("CompoundTest");
-      await manager.initialize();
-
-      await manager.registerButton({
-        id: "compound-test",
-        sections: [
-          {
-            type: "icon",
-            content: "⚙️",
-            tooltip: "Settings",
-            onClick: () => console.log("Settings clicked!"),
-            style: { background: "#FBE3A6" },
-          },
-          {
-            type: "main",
-            content: "Configure",
-            onClick: () => console.log("Main action clicked!"),
-          },
-          {
-            type: "action",
-            content: "📊",
-            tooltip: "Stats",
-            onClick: () => console.log("Stats clicked!"),
-          },
-        ],
-        showOn: ["isMainPage"],
-        stack: "top-right",
-      });
-
-      console.log("🚀 Compound button test complete");
-      console.log(
-        "💡 Try clicking different sections: [⚙️] [Configure] [📊] [×]"
-      );
-    },
-
-    // 🔧 ENHANCED: Test daily note detection with actual page titles
-    testDailyNoteDetection: () => {
-      console.log("🧪 Testing fixed daily note detection...");
-
-      const testCases = [
-        "January 15th, 2025", // Today's format ✅
-        "December 31st, 2024", // New Year's Eve ✅
-        "February 29th, 2024", // Leap year ✅
-        "March 3rd, 2025", // 3rd ✅
-        "April 22nd, 2025", // 22nd ✅
-        "May 1st, 2025", // 1st ✅
-        "January 2025", // Monthly page ❌
-        "01/15/2025", // Different format ❌
-        "Random Page Title", // Non-date page ❌
-        "15th January, 2025", // Wrong order ❌
-        "January 15, 2025", // Missing ordinal ❌
-      ];
-
-      testCases.forEach((pageTitle) => {
-        // Temporarily override getCurrentPageTitle for testing
-        const originalGetTitle = getCurrentPageTitle;
-        window.getCurrentPageTitle = () => pageTitle;
-
-        const isDaily = ButtonConditions.isDailyNote();
-
-        console.log(`📅 "${pageTitle}": daily=${isDaily}`);
-
-        // Restore original function
-        window.getCurrentPageTitle = originalGetTitle;
-      });
-
-      console.log("✅ Fixed daily note detection tests complete");
-    },
-
-    // Test monthly page conditions
-    testMonthlyPageConditions: () => {
-      console.log("🧪 Testing monthly page conditions...");
-
-      const testCases = [
-        "January 2025",
-        "February 2024",
-        "March 2023",
-        "Not a monthly page",
-        "January2025", // No space
-        "january 2025", // Lowercase
-      ];
-
-      testCases.forEach((pageTitle) => {
-        // Temporarily override getCurrentPageTitle for testing
-        const originalGetTitle = getCurrentPageTitle;
-        window.getCurrentPageTitle = () => pageTitle;
-
-        const isMonthly = ButtonConditions.isMonthlyPage();
-        const isEmpty = ButtonConditions.isEmptyMonthlyPage();
-
-        console.log(
-          `📅 "${pageTitle}": monthly=${isMonthly}, empty=${isEmpty}`
-        );
-
-        // Restore original function
-        window.getCurrentPageTitle = originalGetTitle;
-      });
-
-      console.log("✅ Monthly page condition tests complete");
-    },
-
-    // Test weekly page conditions
-    testWeeklyPageConditions: () => {
-      console.log("🧪 Testing weekly page conditions...");
-
-      const testCases = [
-        "07/28 2025 - 08/03 2025", // Valid weekly format
-        "01/06 2024 - 01/12 2024", // Valid weekly format
-        "12/30 2024 - 01/05 2025", // Cross-year weekly format
-        "January 2025", // Monthly page (should be false)
-        "Not a weekly page", // Random page (should be false)
-        "7/28 2025 - 8/3 2025", // Single digit format (might be false)
-        "07/28/2025 - 08/03/2025", // With slashes in year (might be false)
-      ];
-
-      testCases.forEach((pageTitle) => {
-        // Temporarily override getCurrentPageTitle for testing
-        const originalGetTitle = getCurrentPageTitle;
-        window.getCurrentPageTitle = () => pageTitle;
-
-        const isWeekly = ButtonConditions.isWeeklyPage();
-
-        console.log(`📅 "${pageTitle}": weekly=${isWeekly}`);
-
-        // Restore original function
-        window.getCurrentPageTitle = originalGetTitle;
-      });
-
-      console.log("✅ Weekly page condition tests complete");
-    },
-
-    testMixedButtons: async () => {
-      const manager = new SimpleExtensionButtonManager("MixedTest");
-      await manager.initialize();
-
-      await manager.registerButton({
-        id: "mixed-simple",
-        text: "📝 Simple",
-        onClick: () => console.log("Mixed simple clicked!"),
-        showOn: ["isMainPage"],
-        stack: "top-left",
-      });
-
-      await manager.registerButton({
-        id: "mixed-compound",
-        sections: [
-          {
-            type: "icon",
-            content: "🎯",
-            onClick: () => console.log("Icon clicked!"),
-          },
-          {
-            type: "main",
-            content: "Compound",
-            onClick: () => console.log("Main clicked!"),
-          },
-        ],
-        showOn: ["isMainPage"],
-        stack: "top-left",
-      });
-
-      console.log("🔄 Mixed button test complete");
-      console.log(
-        "🎯 Should see both simple [📝 Simple] [×] and compound [🎯] [Compound] [×] buttons"
-      );
-    },
-
-    showStatus: () => {
-      if (window.SimpleButtonRegistry) {
-        const status = window.SimpleButtonRegistry.getStatus();
-        console.log("📊 v3.2.1 System Status:", status);
-        console.log(
-          `🎯 Capabilities: Simple buttons (${status.capabilities.simpleButtons}), Compound buttons (${status.capabilities.compoundButtons}), Monthly page support (${status.capabilities.monthlyPageSupport}), Weekly page support (${status.capabilities.weeklyPageSupport}), Fixed daily note detection (${status.capabilities.fixedDailyNoteDetection})`
-        );
-        console.log(
-          `🧩 Section types available: ${status.capabilities.sectionTypes.join(
-            ", "
-          )}`
-        );
-      } else {
-        console.log("❌ Registry not initialized");
-      }
-    },
-
-    cleanup: () => {
-      if (window.SimpleButtonRegistry) {
-        window.SimpleButtonRegistry.cleanup();
-        console.log("🧹 All test buttons cleaned up");
-      }
-    },
-
-    enableDebugMode: () => {
-      if (window.SimpleButtonRegistry) {
-        window.SimpleButtonRegistry.debugMode = true;
-        console.log(
-          "🐛 Debug mode enabled - detailed logs during button operations"
-        );
-      }
-    },
-
-    disableDebugMode: () => {
-      if (window.SimpleButtonRegistry) {
-        window.SimpleButtonRegistry.debugMode = false;
-        console.log("✅ Debug mode disabled");
-      }
-    },
-  };
-
-  console.log(`✅ ${EXTENSION_NAME} v${EXTENSION_VERSION} loaded!`);
-  console.log(
-    "🔧 FIXED: Robust daily note detection using page title instead of URL"
-  );
-  console.log(
-    "🎯 Supports: Weekly pages, Monthly pages, and improved daily note detection"
-  );
-  console.log("🧪 Test commands:");
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testSimpleButton() - Test v2.1 compatibility"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testCompoundButton() - Test new compound buttons"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testDailyNoteDetection() - Test FIXED daily note detection"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testMonthlyPageConditions() - Test monthly page detection"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testWeeklyPageConditions() - Test weekly page detection"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.testMixedButtons() - Test both types together"
-  );
-  console.log(
-    "  • window.SimpleButtonUtilityTests.showStatus() - Show system capabilities"
-  );
-})();
+  onunload: () => {
+    console.log("✅ Full Featured Subjournals v4.1 unloaded");
+  },
+};
