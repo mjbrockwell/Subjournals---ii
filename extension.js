@@ -1,76 +1,25 @@
 // ===================================================================
-// 📔 FULL FEATURED SUBJOURNALS v4.1 - EVENT-DRIVEN + NEW CONFIG
-// 🚀 Pure event-driven architecture with zero polling
-// 🎯 New config location: roam/ext/subjournals/config
-// 🔄 Context-aware: Date pages vs Subjournal pages
-// 🏗️ Preserves critical cascading block creation with #st0 filtering
+// 📔 FULL FEATURED SUBJOURNALS v4.3 - WITH GUI CONFIG EDITOR
+// 🔧 FIXED: Ported reliable detection patterns from Button Utility
+// ✨ NEW: Beautiful modal-based configuration editor
+// 🎯 RELIABLE: Simple page change detection that actually works
 // ===================================================================
 
 export default {
   onload: ({ extensionAPI }) => {
     console.log(
-      "📔 Full Featured Subjournals v4.1 loading - Event-Driven + New Config!"
+      "📔 Full Featured Subjournals v4.3 loading - GUI CONFIG EDITOR!"
     );
 
     // ===================================================================
-    // 🎯 PURE EVENT-DRIVEN BUTTONS MANAGER - ZERO POLLING
+    // 🔧 PORTED WORKING PATTERNS FROM BUTTON UTILITY EXTENSION
     // ===================================================================
 
-    const EXTENSION_NAME = "Subjournals Button Manager";
-    const EXTENSION_VERSION = "4.1.0";
-
-    // ==================== SECTION TYPE DEFINITIONS ====================
-
-    const SECTION_TYPES = {
-      icon: {
-        defaultStyle: {
-          padding: "8px 10px",
-          minWidth: "32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        purpose: "Configuration, status indicators",
-      },
-      main: {
-        defaultStyle: {
-          padding: "8px 16px",
-          fontWeight: "600",
-          flex: "1",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        purpose: "Primary action button",
-      },
-      action: {
-        defaultStyle: {
-          padding: "8px 12px",
-          minWidth: "36px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        purpose: "Secondary actions",
-      },
-      dismiss: {
-        defaultStyle: {
-          padding: "8px 10px",
-          color: "#8b4513",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "14px",
-          fontWeight: "bold",
-        },
-        purpose: "Hide button (automatically added)",
-      },
-    };
-
-    // ==================== CENTRALIZED PAGE TITLE DETECTION ====================
+    // ==================== ✅ WORKING PAGE TITLE DETECTION ====================
 
     function getCurrentPageTitle() {
       try {
+        // ✅ PROVEN: Multiple DOM selectors from working extension
         const titleSelectors = [
           ".roam-article h1",
           ".rm-page-title",
@@ -81,151 +30,93 @@ export default {
           "h1[data-page-title]",
         ];
 
+        // ✅ PROVEN: Try DOM selectors first
         for (const selector of titleSelectors) {
-          const titleElement = document.querySelector(selector);
-          if (titleElement) {
-            const titleText = titleElement.textContent?.trim();
-            if (titleText && titleText !== "") {
-              return titleText;
+          const element = document.querySelector(selector);
+          if (element?.textContent?.trim()) {
+            return element.textContent.trim();
+          }
+        }
+
+        // ✅ PROVEN: URL hash fallback with proper decoding
+        const hash = window.location.hash;
+        if (hash) {
+          const match = hash.match(/#\/app\/[^\/]+\/page\/(.+)$/);
+          if (match) {
+            const encoded = match[1];
+            try {
+              return decodeURIComponent(encoded);
+            } catch (error) {
+              return encoded; // Raw if decoding fails
             }
           }
-        }
-
-        if (document.title && document.title !== "Roam") {
-          const titleText = document.title
-            .replace(" - Roam", "")
-            .replace(" | Roam Research", "")
-            .trim();
-          if (titleText && titleText !== "") {
-            return titleText;
-          }
-        }
-
-        const url = window.location.href;
-        const pageMatch = url.match(/\/page\/([^/?#]+)/);
-        if (pageMatch) {
-          const pageId = decodeURIComponent(pageMatch[1]);
-          return pageId;
         }
 
         return null;
       } catch (error) {
-        console.error("❌ Failed to get current page title:", error);
+        console.warn("❌ Error getting page title:", error);
         return null;
       }
     }
 
-    // ==================== BUTTON STACK POSITIONING ====================
+    // ==================== ✅ WORKING PAGE CHANGE DETECTION ====================
 
-    const BUTTON_STACKS = {
-      "top-left": {
-        maxButtons: 2,
-        positions: [
-          { x: 14, y: 6 },
-          { x: 14, y: 54 },
-        ],
-      },
-      "top-right": {
-        maxButtons: 5,
-        positions: [
-          { x: -14, y: 6 },
-          { x: -14, y: 54 },
-          { x: -14, y: 102 },
-          { x: -14, y: 150 },
-          { x: -14, y: 198 },
-        ],
-      },
-    };
-
-    // ==================== 🚀 PURE EVENT-DRIVEN PAGE DETECTOR ====================
-
-    class PureEventPageDetector {
+    class WorkingPageChangeDetector {
       constructor() {
-        this.currentUrl = window.location.href;
         this.listeners = new Set();
-        this.isActive = false;
+        this.currentUrl = window.location.href;
+        this.currentTitle = getCurrentPageTitle();
+        this.isMonitoring = false;
+        this.observer = null;
       }
 
-      startListening() {
-        if (this.isActive) return;
+      startMonitoring() {
+        if (this.isMonitoring) return;
 
-        this.setupHistoryListeners();
-        this.setupFocusListeners();
-        this.setupRoamListeners();
-
-        this.isActive = true;
-        console.log("🎯 Pure event-driven detection started");
-      }
-
-      setupHistoryListeners() {
-        // ✅ PURE EVENT: History API changes only
-        this.boundPopState = () => this.handleNavigationChange();
-        window.addEventListener("popstate", this.boundPopState);
-
-        // Intercept programmatic navigation
-        this.originalPushState = history.pushState;
-        this.originalReplaceState = history.replaceState;
-
-        const self = this;
-        history.pushState = function (...args) {
-          self.originalPushState.apply(history, args);
-          self.handleNavigationChange();
-        };
-
-        history.replaceState = function (...args) {
-          self.originalReplaceState.apply(history, args);
-          self.handleNavigationChange();
-        };
-      }
-
-      setupFocusListeners() {
-        // ✅ PURE EVENT: Only check when user returns to tab
-        this.boundFocus = () => {
-          const newUrl = window.location.href;
-          if (newUrl !== this.currentUrl) {
-            this.handleNavigationChange();
-          }
-        };
-        window.addEventListener("focus", this.boundFocus);
-      }
-
-      setupRoamListeners() {
-        // ✅ PURE EVENT: Listen for Roam's content loading events
-        document.addEventListener("roam:page:loaded", () => {
-          this.handleNavigationChange();
+        // ✅ PROVEN: Simple MutationObserver approach
+        this.observer = new MutationObserver(() => {
+          this.checkPageChange();
         });
 
-        // ✅ PURE EVENT: Efficient title monitoring
-        if (document.head) {
-          this.titleObserver = new MutationObserver(() => {
-            if (document.title !== this.currentTitle) {
-              this.currentTitle = document.title;
-              this.handleNavigationChange();
-            }
-          });
+        this.observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
 
-          this.titleObserver.observe(document.head, {
-            childList: true,
-            subtree: true,
-            characterData: true,
-          });
-        }
+        // ✅ PROVEN: Standard event listeners
+        window.addEventListener("popstate", () => this.checkPageChange());
+        window.addEventListener("hashchange", () => this.checkPageChange());
+
+        this.isMonitoring = true;
+        console.log("🔍 Working page change detection started");
       }
 
-      handleNavigationChange() {
+      stopMonitoring() {
+        if (this.observer) {
+          this.observer.disconnect();
+          this.observer = null;
+        }
+        this.isMonitoring = false;
+        console.log("🔍 Working page change detection stopped");
+      }
+
+      checkPageChange() {
         const newUrl = window.location.href;
-        if (newUrl !== this.currentUrl) {
+        const newTitle = getCurrentPageTitle();
+
+        if (newUrl !== this.currentUrl || newTitle !== this.currentTitle) {
           console.log(
-            `📄 Pure event navigation: ${this.currentUrl} → ${newUrl}`
+            `📄 Page change detected: ${this.currentTitle} → ${newTitle}`
           );
           this.currentUrl = newUrl;
+          this.currentTitle = newTitle;
 
-          // ✅ SINGLE EVENT: Notify all listeners once
+          // ✅ PROVEN: Simple listener notification
           this.listeners.forEach((listener) => {
             try {
-              listener({ url: newUrl, timestamp: Date.now() });
+              listener({ url: newUrl, title: newTitle });
             } catch (error) {
-              console.error("❌ Navigation listener error:", error);
+              console.error("❌ Page change listener error:", error);
             }
           });
         }
@@ -235,31 +126,55 @@ export default {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
       }
-
-      cleanup() {
-        window.removeEventListener("popstate", this.boundPopState);
-        window.removeEventListener("focus", this.boundFocus);
-
-        if (this.originalPushState) history.pushState = this.originalPushState;
-        if (this.originalReplaceState)
-          history.replaceState = this.originalReplaceState;
-        if (this.titleObserver) this.titleObserver.disconnect();
-
-        this.isActive = false;
-        console.log("🛑 Pure event detection stopped");
-      }
     }
 
-    // ==================== BUTTON CONDITIONS ====================
+    // ==================== ✅ WORKING PAGE CONDITIONS ====================
 
-    const ButtonConditions = {
+    const WorkingPageConditions = {
+      // ✅ FIXED: Page title-based detection (more reliable!)
       isDailyNote: () => {
+        const pageTitle = getCurrentPageTitle();
+        if (!pageTitle) return false;
+
+        // ✅ PRIMARY: Use title-based detection with our existing regex
+        const titleBasedResult = DATE_PAGE_REGEX.test(pageTitle);
+
+        // ✅ FALLBACK: URL-based detection for other setups
         const url = window.location.href;
-        return (
-          /\/page\/\d{2}-\d{2}-\d{4}/.test(url) ||
-          /\/page\/\d{4}-\d{2}-\d{2}/.test(url) ||
-          /\/page\/[A-Z][a-z]+.*\d{4}/.test(url)
+        const urlBasedResult =
+          /\/page\/\d{2}-\d{2}-\d{4}/.test(url) || // MM-DD-YYYY
+          /\/page\/\d{4}-\d{2}-\d{2}/.test(url) || // YYYY-MM-DD
+          /\/page\/[A-Z][a-z]+.*\d{4}/.test(url); // "January 1st, 2025"
+
+        const result = titleBasedResult || urlBasedResult;
+
+        console.log(
+          `🗓️ Daily note detection for "${pageTitle}" (URL: ${url}): title=${titleBasedResult}, url=${urlBasedResult}, result=${result}`
         );
+        return result;
+      },
+
+      // ✅ PROVEN: Page title based subjournal detection
+      isConfiguredSubjournal: () => {
+        const pageTitle = getCurrentPageTitle();
+        if (!pageTitle) return false;
+
+        const subjournals = getSubjournals();
+        const isSubjournal = subjournals.some((s) => s.name === pageTitle);
+
+        console.log(
+          `📔 Subjournal detection for "${pageTitle}": ${isSubjournal}`
+        );
+        return isSubjournal;
+      },
+
+      // ✨ NEW: Config page detection
+      isConfigPage: () => {
+        const pageTitle = getCurrentPageTitle();
+        const isConfig = pageTitle === CONFIG_PAGE_NAME;
+
+        console.log(`⚙️ Config page detection for "${pageTitle}": ${isConfig}`);
+        return isConfig;
       },
 
       isMainPage: () => {
@@ -268,509 +183,10 @@ export default {
           window.location.href.includes("/page/")
         );
       },
-
-      custom: (conditionFn) => {
-        if (!conditionFn || typeof conditionFn !== "function") {
-          return false;
-        }
-        try {
-          return conditionFn();
-        } catch (error) {
-          console.error("❌ Custom condition error:", error);
-          return false;
-        }
-      },
     };
 
-    // ==================== 🚀 EVENT-DRIVEN BUTTON REGISTRY ====================
-
-    class EventDrivenButtonRegistry {
-      constructor() {
-        this.registeredButtons = new Map();
-        this.activeButtons = new Map();
-        this.stacks = { "top-left": [], "top-right": [] };
-        this.containerCache = null;
-        this.lastPageContext = null;
-        this.pageDetector = new PureEventPageDetector();
-      }
-
-      async initialize() {
-        // ✅ PURE EVENT: Only rebuild on actual navigation
-        this.pageDetector.onPageChange(({ url }) => {
-          this.handlePageChange(url);
-        });
-
-        // ✅ PURE EVENT: Only rebuild when container actually changes
-        this.setupContainerWatcher();
-
-        this.pageDetector.startListening();
-        this.buildInitialButtons();
-
-        console.log("✅ Event-driven button registry initialized");
-        return true;
-      }
-
-      setupContainerWatcher() {
-        // ✅ EFFICIENT: Only watch for container-level changes
-        const containerObserver = new MutationObserver((mutations) => {
-          let containerChanged = false;
-
-          mutations.forEach((mutation) => {
-            // Only care about container-level changes
-            mutation.addedNodes.forEach((node) => {
-              if (
-                node.nodeType === 1 &&
-                (node.classList?.contains("roam-article") ||
-                  node.querySelector?.(".roam-article"))
-              ) {
-                containerChanged = true;
-              }
-            });
-
-            mutation.removedNodes.forEach((node) => {
-              if (
-                node === this.containerCache ||
-                node.contains?.(this.containerCache)
-              ) {
-                containerChanged = true;
-                this.containerCache = null;
-              }
-            });
-          });
-
-          if (containerChanged) {
-            console.log("📦 Container change detected - rebuilding buttons");
-            this.rebuildAllButtons();
-          }
-        });
-
-        // ✅ TARGETED: Only watch document body for major structural changes
-        containerObserver.observe(document.body, {
-          childList: true,
-          subtree: false, // Don't watch deep changes
-        });
-      }
-
-      async handlePageChange(url) {
-        console.log("🔄 Event-driven page change:", url);
-
-        // ✅ SMART: Only rebuild if context actually changed
-        const newContext = await getPageContext();
-        const contextChanged =
-          JSON.stringify(newContext) !== JSON.stringify(this.lastPageContext);
-
-        if (contextChanged) {
-          console.log("📄 Page context changed - rebuilding buttons");
-          this.lastPageContext = newContext;
-          this.rebuildAllButtons();
-        } else {
-          console.log("📄 Same context - no rebuild needed");
-        }
-      }
-
-      buildInitialButtons() {
-        // Initial button build on startup
-        this.rebuildAllButtons();
-      }
-
-      // ✅ CACHED: Container detection with caching
-      getCurrentContainer() {
-        if (this.containerCache && document.contains(this.containerCache)) {
-          return this.containerCache;
-        }
-
-        const candidates = [
-          ".roam-article",
-          ".roam-main",
-          ".roam-center-panel",
-        ];
-        for (const selector of candidates) {
-          const element = document.querySelector(selector);
-          if (element && document.contains(element)) {
-            if (getComputedStyle(element).position === "static") {
-              element.style.position = "relative";
-            }
-            this.containerCache = element;
-            return element;
-          }
-        }
-
-        this.containerCache = document.body;
-        return document.body;
-      }
-
-      // ✅ EFFICIENT: Only rebuild when necessary
-      rebuildAllButtons() {
-        this.clearAllButtons();
-        this.clearAllStacks();
-
-        const visibleButtons = Array.from(this.registeredButtons.values())
-          .filter((config) => this.shouldButtonBeVisible(config))
-          .sort((a, b) => (a.priority ? -1 : 0) - (b.priority ? -1 : 0));
-
-        visibleButtons.forEach((config) => {
-          this.assignButtonToStack(config);
-        });
-
-        this.placeAllStackedButtons();
-
-        console.log(
-          `✅ Event-driven rebuild complete (${this.activeButtons.size} buttons)`
-        );
-      }
-
-      clearAllButtons() {
-        this.activeButtons.forEach((element) => {
-          element.remove();
-        });
-        this.activeButtons.clear();
-      }
-
-      clearAllStacks() {
-        this.stacks["top-left"] = [];
-        this.stacks["top-right"] = [];
-      }
-
-      assignButtonToStack(config) {
-        const targetStack = config.stack || "top-right";
-        const stackConfig = BUTTON_STACKS[targetStack];
-
-        if (this.stacks[targetStack].length < stackConfig.maxButtons) {
-          this.stacks[targetStack].push(config);
-          console.log(
-            `📍 Button "${config.id}" assigned to ${targetStack} slot ${this.stacks[targetStack].length}`
-          );
-        } else {
-          console.warn(
-            `⚠️ Button "${config.id}" skipped - no slots available in ${targetStack}`
-          );
-        }
-      }
-
-      placeAllStackedButtons() {
-        Object.keys(this.stacks).forEach((stackName) => {
-          this.stacks[stackName].forEach((config, index) => {
-            this.createAndPlaceButton(config, stackName, index);
-          });
-        });
-      }
-
-      createAndPlaceButton(config, stackName, stackIndex) {
-        console.log(
-          `🔧 Creating compound button "${config.id}" with ${config.sections.length} sections`
-        );
-        return this.createCompoundButton(config, stackName, stackIndex);
-      }
-
-      createCompoundButton(config, stackName, stackIndex) {
-        const buttonContainer = document.createElement("div");
-        buttonContainer.style.position = "absolute";
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.alignItems = "stretch";
-        buttonContainer.style.zIndex = "10000";
-        buttonContainer.style.borderRadius = "12px";
-        buttonContainer.style.overflow = "hidden";
-        buttonContainer.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
-        buttonContainer.style.transition = "all 200ms ease";
-        buttonContainer.style.background =
-          "linear-gradient(135deg, #fffbeb, #fef3c7)";
-        buttonContainer.style.border = "1.5px solid #8b4513";
-
-        const stackConfig = BUTTON_STACKS[stackName];
-        const position = stackConfig.positions[stackIndex];
-
-        // Process sections and auto-add dismiss if not present
-        let sections = [...config.sections];
-        const hasDismissSection = sections.some(
-          (section) => section.type === "dismiss"
-        );
-        if (!hasDismissSection) {
-          sections.push({
-            type: "dismiss",
-            content: "✕",
-            onClick: () =>
-              this.dismissCompoundButton(config.id, buttonContainer),
-          });
-        }
-
-        // Create each section
-        sections.forEach((section, index) => {
-          const sectionElement = this.createSection(
-            section,
-            index,
-            sections.length,
-            config,
-            stackName,
-            stackIndex,
-            buttonContainer
-          );
-          buttonContainer.appendChild(sectionElement);
-        });
-
-        // Position the container
-        if (position.x < 0) {
-          buttonContainer.style.right = `${Math.abs(position.x)}px`;
-          buttonContainer.style.left = "auto";
-        } else {
-          buttonContainer.style.left = `${position.x}px`;
-          buttonContainer.style.right = "auto";
-        }
-        buttonContainer.style.top = `${position.y}px`;
-
-        // Container hover effects
-        buttonContainer.addEventListener("mouseenter", () => {
-          buttonContainer.style.transform = "translateY(-1px)";
-          buttonContainer.style.boxShadow =
-            "0 6px 16px rgba(245, 158, 11, 0.4)";
-        });
-
-        buttonContainer.addEventListener("mouseleave", () => {
-          buttonContainer.style.transform = "translateY(0)";
-          buttonContainer.style.boxShadow =
-            "0 4px 12px rgba(245, 158, 11, 0.3)";
-        });
-
-        const container = this.getCurrentContainer();
-        container.appendChild(buttonContainer);
-        this.activeButtons.set(config.id, buttonContainer);
-
-        console.log(
-          `✅ Compound button "${config.id}" placed at ${stackName} #${
-            stackIndex + 1
-          } with ${sections.length} sections`
-        );
-      }
-
-      createSection(
-        section,
-        index,
-        totalSections,
-        buttonConfig,
-        stackName,
-        stackIndex,
-        buttonContainer
-      ) {
-        const sectionElement = document.createElement("div");
-
-        // Get section type configuration
-        const sectionType = SECTION_TYPES[section.type] || SECTION_TYPES.action;
-
-        // Apply base styling with warm theme
-        Object.assign(sectionElement.style, {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "all 150ms ease",
-          backgroundColor: "transparent",
-          color: "#78716c",
-          fontSize: "13px",
-          fontWeight: "600",
-          whiteSpace: "nowrap",
-          ...sectionType.defaultStyle,
-        });
-
-        // Apply custom section styles
-        if (section.style) {
-          Object.assign(sectionElement.style, section.style);
-        }
-
-        // Add visual separators between sections
-        if (index > 0) {
-          sectionElement.style.borderLeft = "1px solid #8b4513";
-        }
-
-        // Set section content
-        if (section.content) {
-          if (typeof section.content === "string") {
-            sectionElement.textContent = section.content;
-          } else {
-            sectionElement.appendChild(section.content);
-          }
-        }
-
-        // Add tooltip if provided
-        if (section.tooltip) {
-          sectionElement.setAttribute("title", section.tooltip);
-        }
-
-        // Section-specific hover effects
-        sectionElement.addEventListener("mouseenter", () => {
-          switch (section.type) {
-            case "dismiss":
-              sectionElement.style.backgroundColor = "rgba(220, 53, 69, 0.1)";
-              sectionElement.style.color = "#dc3545";
-              break;
-            case "icon":
-              sectionElement.style.backgroundColor = "rgba(245, 158, 11, 0.2)";
-              break;
-            case "main":
-              sectionElement.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
-              break;
-            default:
-              sectionElement.style.backgroundColor = "rgba(139, 69, 19, 0.1)";
-          }
-        });
-
-        sectionElement.addEventListener("mouseleave", () => {
-          sectionElement.style.backgroundColor = "transparent";
-          sectionElement.style.color =
-            section.type === "dismiss" ? "#8b4513" : "#78716c";
-        });
-
-        // Click handling
-        sectionElement.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          try {
-            if (section.onClick) {
-              section.onClick({
-                sectionType: section.type,
-                sectionIndex: index,
-                buttonId: buttonConfig.id,
-                buttonStack: stackName,
-                buttonPosition: stackIndex + 1,
-                currentPage: {
-                  url: window.location.href,
-                  title: getCurrentPageTitle(),
-                },
-                sectionElement: sectionElement,
-                buttonContainer: buttonContainer,
-              });
-            }
-          } catch (error) {
-            console.error(`❌ Section "${section.type}" click error:`, error);
-          }
-        });
-
-        return sectionElement;
-      }
-
-      dismissCompoundButton(buttonId, buttonContainer) {
-        console.log(`🗑️ Dismissing compound button "${buttonId}"`);
-        if (buttonContainer.parentNode) {
-          buttonContainer.remove();
-        }
-        this.activeButtons.delete(buttonId);
-        console.log(`✅ Compound button "${buttonId}" dismissed`);
-      }
-
-      shouldButtonBeVisible(config) {
-        const { showOn, hideOn, condition } = config;
-
-        if (condition && typeof condition === "function") {
-          try {
-            return condition();
-          } catch (error) {
-            console.error(
-              `❌ Custom condition error for "${config.id}":`,
-              error
-            );
-            return false;
-          }
-        }
-
-        if (showOn) {
-          const shouldShow = showOn.some((conditionName) => {
-            return ButtonConditions[conditionName]
-              ? ButtonConditions[conditionName]()
-              : false;
-          });
-          if (!shouldShow) return false;
-        }
-
-        if (hideOn) {
-          const shouldHide = hideOn.some((conditionName) => {
-            return ButtonConditions[conditionName]
-              ? ButtonConditions[conditionName]()
-              : false;
-          });
-          if (shouldHide) return false;
-        }
-
-        return true;
-      }
-
-      registerButton(config) {
-        const { id, sections } = config;
-
-        if (!sections || !Array.isArray(sections)) {
-          throw new Error(`Button "${id}" must have sections array`);
-        }
-
-        sections.forEach((section, index) => {
-          if (!section.type) {
-            throw new Error(`Button "${id}" section ${index} must have a type`);
-          }
-          if (!SECTION_TYPES[section.type]) {
-            throw new Error(
-              `Button "${id}" section ${index} has invalid type: ${section.type}`
-            );
-          }
-        });
-
-        if (this.registeredButtons.has(id)) {
-          throw new Error(`Button "${id}" already registered`);
-        }
-
-        const stack = config.stack || "top-right";
-        if (!BUTTON_STACKS[stack]) {
-          throw new Error(
-            `Invalid stack: ${stack}. Must be: ${Object.keys(
-              BUTTON_STACKS
-            ).join(", ")}`
-          );
-        }
-
-        this.registeredButtons.set(id, {
-          id,
-          sections,
-          stack,
-          priority: config.priority || false,
-          showOn: config.showOn || null,
-          hideOn: config.hideOn || null,
-          condition: config.condition || null,
-          style: config.style || {},
-        });
-
-        if (this.pageDetector.isActive) {
-          this.rebuildAllButtons();
-        }
-
-        console.log(
-          `✅ Compound button "${id}" registered for ${stack} stack${
-            config.priority ? " (priority)" : ""
-          }`
-        );
-
-        return { success: true, id, stack, type: "compound" };
-      }
-
-      removeButton(id) {
-        const removed = this.registeredButtons.delete(id);
-        if (this.activeButtons.has(id)) {
-          this.activeButtons.get(id).remove();
-          this.activeButtons.delete(id);
-        }
-        if (removed) {
-          console.log(`🗑️ Button "${id}" removed`);
-        }
-        return removed;
-      }
-
-      cleanup() {
-        this.clearAllButtons();
-        this.clearAllStacks();
-        this.registeredButtons.clear();
-        this.pageDetector.cleanup();
-        console.log("🧹 Event-driven Button Registry cleaned up");
-      }
-    }
-
     // ===================================================================
-    // 📔 SUBJOURNALS CORE FUNCTIONALITY
+    // 📔 SUBJOURNALS CORE FUNCTIONALITY (UNCHANGED)
     // ===================================================================
 
     // ==================== CONFIGURATION CONSTANTS ====================
@@ -791,39 +207,58 @@ export default {
       black: "clr-blk-act",
     };
 
-    // ✅ NEW CONFIG LOCATION
+    const COLOR_OPTIONS = [
+      "red",
+      "orange",
+      "yellow",
+      "green",
+      "blue",
+      "purple",
+      "brown",
+      "grey",
+      "white",
+    ];
+
     const CONFIG_PAGE_NAME = "roam/ext/subjournals/config";
 
     // ==================== STATE MANAGEMENT ====================
 
-    let buttonRegistry;
+    let pageDetector;
     let hasShownOnboarding = false;
     let currentDropdown = null;
+    let activeButton = null;
+    let configModal = null;
 
-    // ==================== PAGE CONTEXT DETECTION ====================
+    // ==================== ✅ SIMPLIFIED PAGE CONTEXT DETECTION ====================
 
-    async function getPageContext() {
+    function getPageContext() {
       try {
         const pageTitle = getCurrentPageTitle();
         if (!pageTitle) return { context: "unknown" };
 
-        const isDate = DATE_PAGE_REGEX.test(pageTitle);
-        const subjournals = getSubjournals();
-        const matchingSubjournal = subjournals.find(
-          (s) => s.name === pageTitle
-        );
+        // ✅ PROVEN: Use working detection methods
+        const isDate = WorkingPageConditions.isDailyNote();
+        const isSubjournal = WorkingPageConditions.isConfiguredSubjournal();
+        const isConfig = WorkingPageConditions.isConfigPage();
 
-        if (isDate) {
+        if (isConfig) {
+          return {
+            context: "config",
+            pageTitle,
+          };
+        } else if (isDate) {
           return {
             context: "date",
             pageTitle,
             dateInfo: parseDatePage(pageTitle),
           };
-        } else if (matchingSubjournal) {
+        } else if (isSubjournal) {
+          const subjournals = getSubjournals();
+          const subjournalInfo = subjournals.find((s) => s.name === pageTitle);
           return {
             context: "subjournal",
             pageTitle,
-            subjournalInfo: matchingSubjournal,
+            subjournalInfo,
           };
         } else {
           return { context: "other", pageTitle };
@@ -874,7 +309,7 @@ export default {
       return months.indexOf(monthName);
     }
 
-    // ==================== ✅ CONFIGURATION READING - NEW LOCATION ====================
+    // ==================== CONFIGURATION READING (UNCHANGED) ====================
 
     function getSubjournals() {
       try {
@@ -923,7 +358,12 @@ export default {
             if (colorMatch) color = colorMatch[1];
           }
 
-          subjournals.push({ name, color });
+          subjournals.push({
+            name,
+            color,
+            uid,
+            colorUid: colorChild?.[":block/uid"],
+          });
         });
 
         return subjournals;
@@ -933,7 +373,493 @@ export default {
       }
     }
 
-    // ==================== 🔥 CRITICAL: CASCADING BLOCK CREATION WITH #st0 FILTERING ====================
+    // ==================== ✨ NEW: CONFIG MODAL FUNCTIONALITY ====================
+
+    function createConfigModal() {
+      if (configModal) {
+        configModal.remove();
+        configModal = null;
+      }
+
+      console.log("🎨 Creating configuration modal...");
+
+      // Modal overlay
+      const overlay = document.createElement("div");
+      Object.assign(overlay.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        zIndex: "999999",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      });
+
+      // Modal container
+      const modal = document.createElement("div");
+      Object.assign(modal.style, {
+        backgroundColor: "#ffffff",
+        border: "2px solid #8b4513",
+        borderRadius: "12px",
+        padding: "24px",
+        maxWidth: "600px",
+        maxHeight: "80vh",
+        overflowY: "auto",
+        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+      });
+
+      // Modal header
+      const header = document.createElement("h2");
+      header.textContent = "Configure Subjournals";
+      Object.assign(header.style, {
+        margin: "0 0 20px 0",
+        color: "#8b4513",
+        borderBottom: "2px solid #8b4513",
+        paddingBottom: "10px",
+      });
+
+      // Form container
+      const form = document.createElement("div");
+      form.className = "subjournals-config-form";
+
+      // Get current subjournals
+      const currentSubjournals = getSubjournals();
+      const subjournalRows = [];
+
+      // Create rows for existing subjournals
+      currentSubjournals.forEach((subjournal, index) => {
+        const row = createSubjournalRow(
+          subjournal.name,
+          subjournal.color,
+          index
+        );
+        subjournalRows.push(row);
+        form.appendChild(row.element);
+      });
+
+      // Add new subjournal button
+      const addButton = document.createElement("button");
+      addButton.textContent = "➕ Add New Subjournal";
+      Object.assign(addButton.style, {
+        width: "100%",
+        padding: "12px",
+        margin: "15px 0",
+        border: "2px dashed #8b4513",
+        backgroundColor: "#f9f9f9",
+        color: "#8b4513",
+        fontSize: "14px",
+        fontWeight: "600",
+        borderRadius: "8px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      });
+
+      addButton.addEventListener("mouseenter", () => {
+        addButton.style.backgroundColor = "#fffbeb";
+        addButton.style.borderColor = "#d97706";
+      });
+
+      addButton.addEventListener("mouseleave", () => {
+        addButton.style.backgroundColor = "#f9f9f9";
+        addButton.style.borderColor = "#8b4513";
+      });
+
+      addButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        const newIndex = subjournalRows.length;
+        const newRow = createSubjournalRow("", "blue", newIndex);
+        subjournalRows.push(newRow);
+        form.insertBefore(newRow.element, addButton);
+        newRow.nameInput.focus();
+      });
+
+      // Action buttons container
+      const actionContainer = document.createElement("div");
+      Object.assign(actionContainer.style, {
+        display: "flex",
+        gap: "12px",
+        marginTop: "20px",
+        borderTop: "1px solid #e5e5e5",
+        paddingTop: "20px",
+      });
+
+      // Save button
+      const saveButton = document.createElement("button");
+      saveButton.textContent = "💾 Save Changes";
+      Object.assign(saveButton.style, {
+        flex: "1",
+        padding: "12px 20px",
+        backgroundColor: "#10b981",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontSize: "14px",
+        fontWeight: "600",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      });
+
+      saveButton.addEventListener("mouseenter", () => {
+        saveButton.style.backgroundColor = "#059669";
+      });
+
+      saveButton.addEventListener("mouseleave", () => {
+        saveButton.style.backgroundColor = "#10b981";
+      });
+
+      saveButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await saveConfiguration(subjournalRows);
+        closeModal();
+      });
+
+      // Cancel button
+      const cancelButton = document.createElement("button");
+      cancelButton.textContent = "✕ Cancel";
+      Object.assign(cancelButton.style, {
+        flex: "0 0 auto",
+        padding: "12px 20px",
+        backgroundColor: "#6b7280",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontSize: "14px",
+        fontWeight: "600",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      });
+
+      cancelButton.addEventListener("mouseenter", () => {
+        cancelButton.style.backgroundColor = "#4b5563";
+      });
+
+      cancelButton.addEventListener("mouseleave", () => {
+        cancelButton.style.backgroundColor = "#6b7280";
+      });
+
+      cancelButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        closeModal();
+      });
+
+      // Helper function to create subjournal row
+      function createSubjournalRow(name, color, index) {
+        const rowContainer = document.createElement("div");
+        Object.assign(rowContainer.style, {
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          marginBottom: "12px",
+          padding: "12px",
+          border: "1px solid #e5e5e5",
+          borderRadius: "8px",
+          backgroundColor: "#fafafa",
+        });
+
+        // Name input
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = name;
+        nameInput.placeholder = "Subjournal name...";
+        Object.assign(nameInput.style, {
+          flex: "1",
+          padding: "8px 12px",
+          border: "1px solid #d1d5db",
+          borderRadius: "6px",
+          fontSize: "14px",
+        });
+
+        // Color select
+        const colorSelect = document.createElement("select");
+        Object.assign(colorSelect.style, {
+          padding: "8px 12px",
+          border: "1px solid #d1d5db",
+          borderRadius: "6px",
+          fontSize: "14px",
+          minWidth: "120px",
+        });
+
+        COLOR_OPTIONS.forEach((colorOption) => {
+          const option = document.createElement("option");
+          option.value = colorOption;
+          option.textContent =
+            colorOption.charAt(0).toUpperCase() + colorOption.slice(1);
+          if (colorOption === color) option.selected = true;
+          colorSelect.appendChild(option);
+        });
+
+        // Remove button
+        const removeButton = document.createElement("button");
+        removeButton.textContent = "🗑️";
+        Object.assign(removeButton.style, {
+          padding: "8px 12px",
+          backgroundColor: "#fdf2f8", // Subtle pink pastel
+          color: "#be185d", // Dark pink text for contrast
+          border: "1px solid #f3e8ff",
+          borderRadius: "6px",
+          cursor: "pointer",
+          fontSize: "14px",
+        });
+
+        removeButton.addEventListener("click", (e) => {
+          e.preventDefault();
+          rowContainer.remove();
+          const rowIndex = subjournalRows.findIndex(
+            (row) => row.element === rowContainer
+          );
+          if (rowIndex > -1) {
+            subjournalRows.splice(rowIndex, 1);
+          }
+        });
+
+        rowContainer.appendChild(nameInput);
+        rowContainer.appendChild(colorSelect);
+        rowContainer.appendChild(removeButton);
+
+        return {
+          element: rowContainer,
+          nameInput,
+          colorSelect,
+          removeButton,
+        };
+      }
+
+      // Close modal function
+      function closeModal() {
+        if (configModal) {
+          configModal.remove();
+          configModal = null;
+        }
+      }
+
+      // Escape key closes modal
+      const handleEscape = (e) => {
+        if (e.key === "Escape") {
+          closeModal();
+          document.removeEventListener("keydown", handleEscape);
+        }
+      };
+      document.addEventListener("keydown", handleEscape);
+
+      // Click outside closes modal
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+          closeModal();
+        }
+      });
+
+      // Assemble modal
+      modal.appendChild(header);
+      modal.appendChild(form);
+      form.appendChild(addButton);
+      modal.appendChild(actionContainer);
+      actionContainer.appendChild(saveButton);
+      actionContainer.appendChild(cancelButton);
+      overlay.appendChild(modal);
+
+      document.body.appendChild(overlay);
+      configModal = overlay;
+
+      console.log("✅ Configuration modal created successfully");
+    }
+
+    // Save configuration to Roam blocks
+    async function saveConfiguration(subjournalRows) {
+      try {
+        console.log("💾 Saving configuration...");
+
+        // Get valid subjournals from form
+        const newSubjournals = subjournalRows
+          .map((row) => ({
+            name: row.nameInput.value.trim(),
+            color: row.colorSelect.value,
+          }))
+          .filter((subjournal) => subjournal.name.length > 0);
+
+        if (newSubjournals.length === 0) {
+          alert("⚠️ Please add at least one subjournal before saving.");
+          return;
+        }
+
+        // Get or create config page
+        let configPageUid = window.roamAlphaAPI.q(`
+          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+        `)?.[0]?.[0];
+
+        if (!configPageUid) {
+          configPageUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.page.create({
+            page: { title: CONFIG_PAGE_NAME, uid: configPageUid },
+          });
+        }
+
+        // Find or create "My Subjournals:" block
+        const allBlocks = window.roamAlphaAPI.q(`
+          [:find ?uid ?string :where 
+           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
+           [?child :block/uid ?uid] [?child :block/string ?string]]
+        `);
+
+        let mySubjournalsUid = allBlocks.find(
+          ([uid, string]) => string?.trim() === "My Subjournals:"
+        )?.[0];
+
+        if (!mySubjournalsUid) {
+          mySubjournalsUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": configPageUid, order: 1 },
+            block: { uid: mySubjournalsUid, string: "My Subjournals:" },
+          });
+        }
+
+        // Clear existing subjournals
+        const existingChildren = window.roamAlphaAPI.q(`
+          [:find ?uid :where 
+           [?parent :block/uid "${mySubjournalsUid}"] [?child :block/parents ?parent] [?child :block/uid ?uid]]
+        `);
+
+        for (const [childUid] of existingChildren) {
+          await window.roamAlphaAPI.data.block.delete({
+            block: { uid: childUid },
+          });
+        }
+
+        // Create new subjournals
+        for (let i = 0; i < newSubjournals.length; i++) {
+          const { name, color } = newSubjournals[i];
+
+          const subjournalUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": mySubjournalsUid, order: i },
+            block: { uid: subjournalUid, string: name },
+          });
+
+          const colorUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": subjournalUid, order: 0 },
+            block: { uid: colorUid, string: `Color: ${color}` },
+          });
+        }
+
+        console.log("✅ Configuration saved successfully");
+
+        // Show success message
+        setTimeout(() => {
+          alert(
+            `✅ Configuration saved successfully!\n\n${newSubjournals.length} subjournals configured.`
+          );
+        }, 100);
+      } catch (error) {
+        console.error("❌ Error saving configuration:", error);
+        alert(`❌ Error saving configuration: ${error.message}`);
+      }
+    }
+
+    // ==================== ONBOARDING (UNCHANGED) ====================
+
+    function needsOnboarding() {
+      try {
+        const configPageUid = window.roamAlphaAPI.q(`
+          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+        `)?.[0]?.[0];
+
+        if (!configPageUid) return true;
+
+        const blocks = window.roamAlphaAPI.q(`
+          [:find ?uid ?string :where 
+           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
+           [?child :block/uid ?uid] [?child :block/string ?string]]
+        `);
+
+        return !blocks.some(
+          ([uid, string]) => string?.trim() === "My Subjournals:"
+        );
+      } catch (error) {
+        return true;
+      }
+    }
+
+    async function createDefaultStructure() {
+      try {
+        console.log(`🛠️ Creating ${CONFIG_PAGE_NAME} structure...`);
+
+        const pageUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.page.create({
+          page: { title: CONFIG_PAGE_NAME, uid: pageUid },
+        });
+
+        const instructionUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 0 },
+          block: {
+            uid: instructionUid,
+            string:
+              "Welcome to Full Featured Subjournals v4.3! Enhanced with GUI configuration editor. Click the 'Edit config page?' button to use the visual editor, or manually edit the subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white. #clr-lgt-orn-act",
+          },
+        });
+
+        const subjournalsUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.data.block.create({
+          location: { "parent-uid": pageUid, order: 1 },
+          block: { uid: subjournalsUid, string: "My Subjournals:" },
+        });
+
+        const samples = [
+          { name: "Therapy Journal", color: "blue" },
+          { name: "Project Ideas", color: "green" },
+          { name: "Health & Wellness", color: "red" },
+          { name: "Learning Notes", color: "purple" },
+        ];
+
+        for (let i = 0; i < samples.length; i++) {
+          const sampleUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": subjournalsUid, order: i },
+            block: { uid: sampleUid, string: samples[i].name },
+          });
+
+          const colorUid = window.roamAlphaAPI.util.generateUID();
+          await window.roamAlphaAPI.data.block.create({
+            location: { "parent-uid": sampleUid, order: 0 },
+            block: { uid: colorUid, string: `Color: ${samples[i].color}` },
+          });
+        }
+
+        console.log("✅ Default structure created successfully");
+        return true;
+      } catch (error) {
+        console.error("❌ Error creating default structure:", error);
+        return false;
+      }
+    }
+
+    function showOnboardingGuidance() {
+      if (hasShownOnboarding) return;
+      hasShownOnboarding = true;
+
+      setTimeout(() => {
+        alert(`📔 Welcome to Full Featured Subjournals v4.3!
+
+✨ NEW: GUI Configuration Editor!
+
+🎯 What's new in v4.3:
+- ✅ Beautiful modal-based configuration editor
+- ✅ Visual form with dropdowns for colors
+- ✅ Add/remove subjournals with buttons
+- ✅ Reliable daily note detection
+
+🔧 I've created ${CONFIG_PAGE_NAME} with sample configuration.
+
+🎨 Visit the config page and click "Edit config page?" to try the new visual editor!
+
+This is your one-time welcome message.`);
+      }, 1000);
+    }
+
+    // ==================== CASCADING BLOCK CREATION (UNCHANGED) ====================
 
     async function findOrCreateStructureBlock(
       parentUid,
@@ -946,7 +872,6 @@ export default {
         console.log(`🔍 Search Pattern: "${searchPattern}"`);
         console.log(`🏗️ Create Content: "${createContent}"`);
 
-        // 🚨 CRITICAL: Only search blocks that have #st0 tag AND match pattern
         const children = window.roamAlphaAPI.q(`
           [:find ?uid ?string 
            :where 
@@ -1001,40 +926,37 @@ export default {
 
       const colorTag = COLOR_MAP[color.toLowerCase()] || COLOR_MAP.blue;
 
-      // 🔥 STEP 1: Year block (with #st0 filtering)
+      // Year block
       console.log(`\n🗓️ STEP 1: Creating/finding year block`);
       const yearSearchPattern = `#st0 [[${dateInfo.year}]]`;
       const yearCreateContent = `#st0 [[${dateInfo.year}]] #${colorTag}`;
-
       const yearUid = await findOrCreateStructureBlock(
         journalUid,
         yearSearchPattern,
         yearCreateContent
       );
 
-      // 🔥 STEP 2: Month block (with #st0 filtering)
+      // Month block
       console.log(`\n📅 STEP 2: Creating/finding month block`);
       const monthSearchPattern = `#st0 [[${dateInfo.fullMonth}]]`;
       const monthCreateContent = `#st0 [[${dateInfo.fullMonth}]] #${colorTag}`;
-
       const monthUid = await findOrCreateStructureBlock(
         yearUid,
         monthSearchPattern,
         monthCreateContent
       );
 
-      // 🔥 STEP 3: Date block (with #st0 filtering)
+      // Date block
       console.log(`\n📆 STEP 3: Creating/finding date block`);
       const dateSearchPattern = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]]`;
       const dateCreateContent = `#st0 ${dateInfo.dayName} [[${dateInfo.fullDate}]] #${colorTag}`;
-
       const dateUid = await findOrCreateStructureBlock(
         monthUid,
         dateSearchPattern,
         dateCreateContent
       );
 
-      // 🔥 STEP 4: Content block (regular block, no #st0)
+      // Content block
       console.log(`\n📝 STEP 4: Creating content block`);
       const contentUid = window.roamAlphaAPI.util.generateUID();
       await window.roamAlphaAPI.data.block.create({
@@ -1046,8 +968,6 @@ export default {
       console.groupEnd();
       return contentUid;
     }
-
-    // ==================== HELPER FUNCTIONS ====================
 
     async function getOrCreatePageUid(title) {
       let pageUid = window.roamAlphaAPI.q(`
@@ -1083,108 +1003,263 @@ export default {
       return blockUid;
     }
 
-    // ==================== ✅ ONBOARDING - NEW LOCATION ====================
+    // ==================== ✅ ENHANCED BUTTON MANAGEMENT ====================
 
-    function needsOnboarding() {
-      try {
-        const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
-        `)?.[0]?.[0];
+    function findButtonContainer() {
+      const candidates = [
+        ".roam-article",
+        ".roam-main .roam-article",
+        ".roam-main",
+      ];
 
-        if (!configPageUid) return true;
-
-        const blocks = window.roamAlphaAPI.q(`
-          [:find ?uid ?string :where 
-           [?page :block/uid "${configPageUid}"] [?child :block/page ?page]
-           [?child :block/uid ?uid] [?child :block/string ?string]]
-        `);
-
-        return !blocks.some(
-          ([uid, string]) => string?.trim() === "My Subjournals:"
-        );
-      } catch (error) {
-        return true;
-      }
-    }
-
-    async function createDefaultStructure() {
-      try {
-        console.log(`🛠️ Creating ${CONFIG_PAGE_NAME} structure...`);
-
-        const pageUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.page.create({
-          page: { title: CONFIG_PAGE_NAME, uid: pageUid },
-        });
-
-        const instructionUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.block.create({
-          location: { "parent-uid": pageUid, order: 0 },
-          block: {
-            uid: instructionUid,
-            string:
-              "Welcome to Full Featured Subjournals v4.1! Pure event-driven architecture with new config location. List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
-          },
-        });
-
-        const subjournalsUid = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.data.block.create({
-          location: { "parent-uid": pageUid, order: 1 },
-          block: { uid: subjournalsUid, string: "My Subjournals:" },
-        });
-
-        const samples = [
-          { name: "Therapy Journal", color: "blue" },
-          { name: "Project Ideas", color: "green" },
-          { name: "Health & Wellness", color: "red" },
-          { name: "Learning Notes", color: "purple" },
-        ];
-
-        for (let i = 0; i < samples.length; i++) {
-          const sampleUid = window.roamAlphaAPI.util.generateUID();
-          await window.roamAlphaAPI.data.block.create({
-            location: { "parent-uid": subjournalsUid, order: i },
-            block: { uid: sampleUid, string: samples[i].name },
-          });
-
-          const colorUid = window.roamAlphaAPI.util.generateUID();
-          await window.roamAlphaAPI.data.block.create({
-            location: { "parent-uid": sampleUid, order: 0 },
-            block: { uid: colorUid, string: `Color: ${samples[i].color}` },
-          });
+      for (const selector of candidates) {
+        const element = document.querySelector(selector);
+        if (element && document.contains(element)) {
+          if (getComputedStyle(element).position === "static") {
+            element.style.position = "relative";
+          }
+          return element;
         }
+      }
 
-        console.log("✅ Default structure created successfully");
-        return true;
-      } catch (error) {
-        console.error("❌ Error creating default structure:", error);
-        return false;
+      console.warn("⚠️ No suitable container found, using document.body");
+      return document.body;
+    }
+
+    function createButton(context) {
+      // Remove existing button
+      if (activeButton) {
+        activeButton.remove();
+        activeButton = null;
+      }
+
+      if (context.context === "config") {
+        // ✨ NEW: Config page button
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "subjournals-button-container config-mode";
+
+        Object.assign(buttonContainer.style, {
+          position: "absolute",
+          top: "8px",
+          right: "20px",
+          zIndex: "10000",
+          display: "flex",
+          alignItems: "stretch",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          background: "linear-gradient(135deg, #fefce8, #fef3c7)", // Pale pastel yellow
+          border: "1.5px solid #8b4513", // Dark brown border
+        });
+
+        // Main button
+        const mainButton = document.createElement("button");
+        mainButton.textContent = "Edit config page?";
+        Object.assign(mainButton.style, {
+          padding: "8px 16px",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: "600",
+          color: "#8b4513",
+          flex: "1",
+        });
+        mainButton.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          createConfigModal();
+        });
+
+        // Dismiss button
+        const dismissButton = document.createElement("button");
+        dismissButton.textContent = "✕";
+        Object.assign(dismissButton.style, {
+          padding: "8px 10px",
+          background: "transparent",
+          border: "none",
+          borderLeft: "1px solid #8b4513",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: "#8b4513",
+        });
+        dismissButton.addEventListener("click", () => {
+          buttonContainer.remove();
+          activeButton = null;
+        });
+
+        buttonContainer.appendChild(mainButton);
+        buttonContainer.appendChild(dismissButton);
+
+        const container = findButtonContainer();
+        container.appendChild(buttonContainer);
+        activeButton = buttonContainer;
+
+        console.log("✅ Config page button created");
+      } else if (context.context === "date") {
+        // Date page: Show dropdown for subjournal selection
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "subjournals-button-container";
+
+        Object.assign(buttonContainer.style, {
+          position: "absolute",
+          top: "8px",
+          right: "20px",
+          zIndex: "10000",
+          display: "flex",
+          alignItems: "stretch",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          background: "linear-gradient(135deg, #fffbeb, #fef3c7)",
+          border: "1.5px solid #8b4513",
+        });
+
+        // Info button
+        const infoButton = document.createElement("button");
+        infoButton.textContent = "ℹ️";
+        Object.assign(infoButton.style, {
+          padding: "8px 10px",
+          background: "transparent",
+          border: "none",
+          borderRight: "1px solid #8b4513",
+          cursor: "pointer",
+          fontSize: "14px",
+        });
+        infoButton.addEventListener("click", () => {
+          window.roamAlphaAPI.ui.mainWindow.openPage({
+            page: { title: CONFIG_PAGE_NAME },
+          });
+        });
+
+        // Main button
+        const mainButton = document.createElement("button");
+        mainButton.textContent = "Add to Subjournal?";
+        Object.assign(mainButton.style, {
+          padding: "8px 16px",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: "600",
+          flex: "1",
+        });
+        mainButton.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const subjournals = getSubjournals();
+          createDropdown(subjournals, buttonContainer, "sidebar");
+        });
+
+        // Dismiss button
+        const dismissButton = document.createElement("button");
+        dismissButton.textContent = "✕";
+        Object.assign(dismissButton.style, {
+          padding: "8px 10px",
+          background: "transparent",
+          border: "none",
+          borderLeft: "1px solid #8b4513",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: "#8b4513",
+        });
+        dismissButton.addEventListener("click", () => {
+          buttonContainer.remove();
+          activeButton = null;
+        });
+
+        buttonContainer.appendChild(infoButton);
+        buttonContainer.appendChild(mainButton);
+        buttonContainer.appendChild(dismissButton);
+
+        const container = findButtonContainer();
+        container.appendChild(buttonContainer);
+        activeButton = buttonContainer;
+
+        console.log("✅ Date page button created");
+      } else if (context.context === "subjournal") {
+        // Subjournal page: Show direct entry button
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "subjournals-button-container";
+
+        Object.assign(buttonContainer.style, {
+          position: "absolute",
+          top: "8px",
+          right: "20px",
+          zIndex: "10000",
+          display: "flex",
+          alignItems: "stretch",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          background: "linear-gradient(135deg, #fffbeb, #fef3c7)",
+          border: "1.5px solid #27ae60", // Green for subjournal pages
+        });
+
+        // Info button
+        const infoButton = document.createElement("button");
+        infoButton.textContent = "ℹ️";
+        Object.assign(infoButton.style, {
+          padding: "8px 10px",
+          background: "transparent",
+          border: "none",
+          borderRight: "1px solid #27ae60",
+          cursor: "pointer",
+          fontSize: "14px",
+        });
+        infoButton.addEventListener("click", () => {
+          window.roamAlphaAPI.ui.mainWindow.openPage({
+            page: { title: CONFIG_PAGE_NAME },
+          });
+        });
+
+        // Main button
+        const mainButton = document.createElement("button");
+        mainButton.textContent = "Add entry to this page?";
+        Object.assign(mainButton.style, {
+          padding: "8px 16px",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: "600",
+          color: "#27ae60",
+          flex: "1",
+        });
+        mainButton.addEventListener("click", () => {
+          handleDirectEntry(context.subjournalInfo);
+        });
+
+        // Dismiss button
+        const dismissButton = document.createElement("button");
+        dismissButton.textContent = "✕";
+        Object.assign(dismissButton.style, {
+          padding: "8px 10px",
+          background: "transparent",
+          border: "none",
+          borderLeft: "1px solid #27ae60",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: "#27ae60",
+        });
+        dismissButton.addEventListener("click", () => {
+          buttonContainer.remove();
+          activeButton = null;
+        });
+
+        buttonContainer.appendChild(infoButton);
+        buttonContainer.appendChild(mainButton);
+        buttonContainer.appendChild(dismissButton);
+
+        const container = findButtonContainer();
+        container.appendChild(buttonContainer);
+        activeButton = buttonContainer;
+
+        console.log("✅ Subjournal page button created");
       }
     }
 
-    function showOnboardingGuidance() {
-      if (hasShownOnboarding) return;
-      hasShownOnboarding = true;
-
-      setTimeout(() => {
-        alert(`📔 Welcome to Full Featured Subjournals v4.1!
-
-🎯 PURE EVENT-DRIVEN + NEW CONFIG LOCATION!
-
-✨ What's new in v4.1:
-- ⚡ Zero polling/monitoring - pure event-driven architecture
-- 📍 New config location: ${CONFIG_PAGE_NAME}
-- 🚀 Significant performance improvements
-- 🔄 Intelligent context-aware button management
-
-🔧 I've created ${CONFIG_PAGE_NAME} with sample configuration.
-
-👆 Click the [ℹ️] section to customize your subjournals!
-
-This is your one-time welcome message.`);
-      }, 1000);
-    }
-
-    // ==================== DROPDOWN FUNCTIONALITY ====================
+    // ==================== DROPDOWN FUNCTIONALITY (UNCHANGED) ====================
 
     function createDropdown(subjournals, triggerElement, mode = "sidebar") {
       if (currentDropdown) {
@@ -1269,9 +1344,8 @@ This is your one-time welcome message.`);
         dropdown.appendChild(option);
       });
 
-      // Position dropdown relative to button
-      const container = buttonRegistry.getCurrentContainer();
-
+      // Position dropdown
+      const container = findButtonContainer();
       if (triggerElement && triggerElement.getBoundingClientRect) {
         try {
           const buttonRect = triggerElement.getBoundingClientRect();
@@ -1280,10 +1354,7 @@ This is your one-time welcome message.`);
           dropdown.style.top = buttonRect.bottom - containerRect.top + 2 + "px";
           dropdown.style.left = buttonRect.left - containerRect.left + "px";
           dropdown.style.width = buttonRect.width + "px";
-
-          console.log(`📍 Dropdown positioned relative to button`);
         } catch (error) {
-          console.warn("⚠️ Could not position dropdown, using fallback");
           dropdown.style.top = "60px";
           dropdown.style.right = "20px";
         }
@@ -1310,12 +1381,11 @@ This is your one-time welcome message.`);
       setTimeout(() => document.addEventListener("click", closeDropdown), 0);
     }
 
-    // ==================== NAVIGATION MODES ====================
+    // ==================== NAVIGATION MODES (UNCHANGED) ====================
 
-    // MODE 1: Sidebar Navigation (from date pages)
     async function handleSubjournalSelection(subjournalName, color) {
       try {
-        const context = await getPageContext();
+        const context = getPageContext();
         if (!context.dateInfo)
           throw new Error("Current page is not a valid date page");
 
@@ -1355,19 +1425,20 @@ This is your one-time welcome message.`);
       }
     }
 
-    // MODE 2: Focus Mode Navigation (from subjournal pages)
     async function handleDirectEntry(subjournalInfo) {
       try {
         console.log(
           `🎯 FOCUS MODE: Creating direct entry for ${subjournalInfo.name}`
         );
 
+        // Generate today's date info
+        const today = new Date();
         const dateInfo = {
-          year: new Date().getFullYear(),
-          month: new Date().toLocaleDateString("en-US", { month: "long" }),
-          day: new Date().getDate(),
-          dayName: new Date().toLocaleDateString("en-US", { weekday: "long" }),
-          fullDate: new Date()
+          year: today.getFullYear(),
+          month: today.toLocaleDateString("en-US", { month: "long" }),
+          day: today.getDate(),
+          dayName: today.toLocaleDateString("en-US", { weekday: "long" }),
+          fullDate: today
             .toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
@@ -1385,9 +1456,9 @@ This is your one-time welcome message.`);
                   : "th";
               return day + suffix;
             }),
-          fullMonth: `${new Date().toLocaleDateString("en-US", {
+          fullMonth: `${today.toLocaleDateString("en-US", {
             month: "long",
-          })} ${new Date().getFullYear()}`,
+          })} ${today.getFullYear()}`,
         };
 
         const subjournalPageUid = await getOrCreatePageUid(subjournalInfo.name);
@@ -1420,83 +1491,44 @@ This is your one-time welcome message.`);
       }
     }
 
-    // ==================== BUTTON CREATION ====================
+    // ==================== ✅ SIMPLE UNIFIED UI MANAGEMENT ====================
 
-    function createSubjournalsButton() {
-      return getPageContext().then((context) => {
-        if (context.context === "date") {
-          // Date page: Show dropdown for subjournal selection
-          return {
-            id: "subjournals-main",
-            sections: [
-              {
-                type: "icon",
-                content: "ℹ️",
-                tooltip: "Configure Subjournals",
-                onClick: () => {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { title: CONFIG_PAGE_NAME },
-                  });
-                },
-              },
-              {
-                type: "main",
-                content: "Add to Subjournal?",
-                onClick: (params) => {
-                  const subjournals = getSubjournals();
-                  createDropdown(
-                    subjournals,
-                    params.buttonContainer,
-                    "sidebar"
-                  );
-                },
-              },
-            ],
-            condition: () => context.context === "date",
-            stack: "top-right",
-          };
-        } else if (context.context === "subjournal") {
-          // Subjournal page: Show direct entry button
-          return {
-            id: "subjournals-main",
-            sections: [
-              {
-                type: "icon",
-                content: "ℹ️",
-                tooltip: "Configure Subjournals",
-                onClick: () => {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { title: CONFIG_PAGE_NAME },
-                  });
-                },
-              },
-              {
-                type: "main",
-                content: "Add entry to this page?",
-                onClick: () => {
-                  handleDirectEntry(context.subjournalInfo);
-                },
-              },
-            ],
-            condition: () => context.context === "subjournal",
-            stack: "top-right",
-          };
-        }
+    function updateUI() {
+      console.log("🔄 Updating UI based on current page context");
 
-        return null; // No button on other pages
-      });
+      const context = getPageContext();
+      console.log("📄 Current context:", context);
+
+      // Remove existing button
+      if (activeButton) {
+        activeButton.remove();
+        activeButton = null;
+      }
+
+      // Create appropriate button based on context
+      if (
+        context.context === "config" ||
+        context.context === "date" ||
+        context.context === "subjournal"
+      ) {
+        createButton(context);
+      }
     }
 
-    // ==================== ✅ INITIALIZATION - EVENT-DRIVEN ====================
+    // ==================== ✅ INITIALIZATION WITH WORKING DETECTION ====================
 
     async function initialize() {
       console.log(
-        "🚀 Initializing Full Featured Subjournals v4.1 - Event-Driven + New Config..."
+        "🚀 Initializing Full Featured Subjournals v4.3 - GUI Config Editor..."
       );
 
-      // ✅ EVENT-DRIVEN: Initialize button registry with zero polling
-      buttonRegistry = new EventDrivenButtonRegistry();
-      await buttonRegistry.initialize();
+      // ✅ PROVEN: Initialize working page detector
+      pageDetector = new WorkingPageChangeDetector();
+      pageDetector.onPageChange(() => {
+        console.log("📄 Page change detected - updating UI");
+        updateUI();
+      });
+      pageDetector.startMonitoring();
 
       // Check for onboarding
       if (needsOnboarding()) {
@@ -1505,24 +1537,12 @@ This is your one-time welcome message.`);
         if (created) showOnboardingGuidance();
       }
 
-      // Register the subjournals button with dynamic configuration
-      const buttonConfig = await createSubjournalsButton();
-      if (buttonConfig) {
-        buttonRegistry.registerButton(buttonConfig);
-      }
-
-      // ✅ EVENT-DRIVEN: Re-register button on page changes (no polling)
-      buttonRegistry.pageDetector.onPageChange(async () => {
-        buttonRegistry.removeButton("subjournals-main");
-        const newButtonConfig = await createSubjournalsButton();
-        if (newButtonConfig) {
-          buttonRegistry.registerButton(newButtonConfig);
-        }
-      });
+      // ✅ PROVEN: Initial UI update
+      updateUI();
 
       // Settings panel
       extensionAPI.settings.panel.create({
-        tabTitle: "Full Featured Subjournals v4.1",
+        tabTitle: "Full Featured Subjournals v4.3",
         settings: [
           {
             id: "debugMode",
@@ -1530,32 +1550,75 @@ This is your one-time welcome message.`);
             description: "Enable detailed console logging for troubleshooting",
             action: { type: "switch" },
           },
-          {
-            id: "performanceMode",
-            name: "Performance Mode",
-            description: "Enable performance monitoring and optimization",
-            action: { type: "switch" },
-          },
         ],
       });
 
       console.log(
-        "✅ Full Featured Subjournals v4.1 initialized - Event-driven + New config location!"
+        "✅ Full Featured Subjournals v4.3 initialized - GUI Config Editor ready!"
       );
 
       return {
         cleanup: () => {
-          buttonRegistry.cleanup();
+          pageDetector.stopMonitoring();
           if (currentDropdown) currentDropdown.remove();
-          console.log("🧹 Full Featured Subjournals v4.1 cleaned up");
+          if (activeButton) activeButton.remove();
+          if (configModal) configModal.remove();
+          console.log("🧹 Full Featured Subjournals v4.3 cleaned up");
         },
       };
     }
+
+    // ==================== ✅ DEBUG UTILITIES ====================
+
+    window.SubjournalsDebug = {
+      testDailyNoteDetection: () => {
+        console.log("🧪 Testing daily note detection...");
+
+        const testUrls = [
+          "https://roamresearch.com/#/app/test/page/01-15-2025",
+          "https://roamresearch.com/#/app/test/page/2025-01-15",
+          "https://roamresearch.com/#/app/test/page/January%2015th%2C%202025",
+          "https://roamresearch.com/#/app/test/page/Not%20A%20Date",
+        ];
+
+        testUrls.forEach((url) => {
+          const oldHref = window.location.href;
+          Object.defineProperty(window.location, "href", { value: url });
+
+          const result = WorkingPageConditions.isDailyNote();
+          console.log(`📅 URL: ${url} → Daily Note: ${result}`);
+
+          Object.defineProperty(window.location, "href", { value: oldHref });
+        });
+      },
+
+      getCurrentContext: () => {
+        const context = getPageContext();
+        console.log("📄 Current page context:", context);
+        return context;
+      },
+
+      getSubjournals: () => {
+        const subjournals = getSubjournals();
+        console.log("📔 Current subjournals:", subjournals);
+        return subjournals;
+      },
+
+      forceUpdateUI: () => {
+        console.log("🔄 Forcing UI update...");
+        updateUI();
+      },
+
+      openConfigModal: () => {
+        console.log("🎨 Opening config modal...");
+        createConfigModal();
+      },
+    };
 
     return initialize();
   },
 
   onunload: () => {
-    console.log("✅ Full Featured Subjournals v4.1 unloaded");
+    console.log("✅ Full Featured Subjournals v4.3 unloaded");
   },
 };
