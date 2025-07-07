@@ -1,7 +1,7 @@
 // ===================================================================
-// 📔 FULL FEATURED SUBJOURNALS v4.1 - EVENT-DRIVEN + NEW CONFIG
-// 🚀 Pure event-driven architecture with zero polling
-// 🎯 New config location: roam/ext/subjournals/config
+// 📔 FULL FEATURED SUBJOURNALS v4.0 - COMPOUND BUTTONS EDITION
+// 🚀 Complete rebuild with integrated buttons manager
+// 🎯 Tripartite compound buttons: [ℹ️] [Main Action] [✕]
 // 🔄 Context-aware: Date pages vs Subjournal pages
 // 🏗️ Preserves critical cascading block creation with #st0 filtering
 // ===================================================================
@@ -9,15 +9,16 @@
 export default {
   onload: ({ extensionAPI }) => {
     console.log(
-      "📔 Full Featured Subjournals v4.1 loading - Event-Driven + New Config!"
+      "📔 Full Featured Subjournals v4.0 loading - Compound Buttons Edition!"
     );
 
     // ===================================================================
-    // 🎯 PURE EVENT-DRIVEN BUTTONS MANAGER - ZERO POLLING
+    // 🎯 EMBEDDED BUTTONS MANAGER - COMPLETE INTEGRATION
     // ===================================================================
 
     const EXTENSION_NAME = "Subjournals Button Manager";
-    const EXTENSION_VERSION = "4.1.0";
+    const EXTENSION_VERSION = "4.0.0";
+    const ANIMATION_DURATION = 200;
 
     // ==================== SECTION TYPE DEFINITIONS ====================
 
@@ -137,95 +138,95 @@ export default {
       },
     };
 
-    // ==================== 🚀 PURE EVENT-DRIVEN PAGE DETECTOR ====================
+    // ==================== PAGE CHANGE DETECTOR ====================
 
-    class PureEventPageDetector {
+    class SimplePageChangeDetector {
       constructor() {
         this.currentUrl = window.location.href;
+        this.currentTitle = document.title;
         this.listeners = new Set();
-        this.isActive = false;
+        this.isMonitoring = false;
       }
 
-      startListening() {
-        if (this.isActive) return;
-
-        this.setupHistoryListeners();
-        this.setupFocusListeners();
-        this.setupRoamListeners();
-
-        this.isActive = true;
-        console.log("🎯 Pure event-driven detection started");
+      startMonitoring() {
+        if (this.isMonitoring) return;
+        this.setupURLListeners();
+        this.setupTitleListener();
+        this.setupPeriodicCheck();
+        this.isMonitoring = true;
+        console.log("🚀 Subjournals page monitoring started");
       }
 
-      setupHistoryListeners() {
-        // ✅ PURE EVENT: History API changes only
-        this.boundPopState = () => this.handleNavigationChange();
-        window.addEventListener("popstate", this.boundPopState);
+      stopMonitoring() {
+        if (!this.isMonitoring) return;
+        window.removeEventListener("popstate", this.boundURLChange);
+        if (this.originalPushState) history.pushState = this.originalPushState;
+        if (this.originalReplaceState)
+          history.replaceState = this.originalReplaceState;
+        if (this.titleObserver) this.titleObserver.disconnect();
+        if (this.checkInterval) clearInterval(this.checkInterval);
+        this.isMonitoring = false;
+        console.log("🛑 Subjournals page monitoring stopped");
+      }
 
-        // Intercept programmatic navigation
+      setupURLListeners() {
+        this.boundURLChange = () => this.checkForPageChange();
+        window.addEventListener("popstate", this.boundURLChange);
+
         this.originalPushState = history.pushState;
         this.originalReplaceState = history.replaceState;
 
         const self = this;
         history.pushState = function (...args) {
           self.originalPushState.apply(history, args);
-          self.handleNavigationChange();
+          setTimeout(() => self.checkForPageChange(), 50);
         };
 
         history.replaceState = function (...args) {
           self.originalReplaceState.apply(history, args);
-          self.handleNavigationChange();
+          setTimeout(() => self.checkForPageChange(), 50);
         };
       }
 
-      setupFocusListeners() {
-        // ✅ PURE EVENT: Only check when user returns to tab
-        this.boundFocus = () => {
-          const newUrl = window.location.href;
-          if (newUrl !== this.currentUrl) {
-            this.handleNavigationChange();
+      setupTitleListener() {
+        const self = this;
+        this.titleObserver = new MutationObserver(() => {
+          if (document.title !== self.currentTitle) {
+            setTimeout(() => self.checkForPageChange(), 50);
           }
-        };
-        window.addEventListener("focus", this.boundFocus);
-      }
-
-      setupRoamListeners() {
-        // ✅ PURE EVENT: Listen for Roam's content loading events
-        document.addEventListener("roam:page:loaded", () => {
-          this.handleNavigationChange();
         });
 
-        // ✅ PURE EVENT: Efficient title monitoring
-        if (document.head) {
-          this.titleObserver = new MutationObserver(() => {
-            if (document.title !== this.currentTitle) {
-              this.currentTitle = document.title;
-              this.handleNavigationChange();
-            }
-          });
-
-          this.titleObserver.observe(document.head, {
-            childList: true,
-            subtree: true,
-            characterData: true,
-          });
-        }
+        this.titleObserver.observe(document.head, {
+          childList: true,
+          subtree: true,
+        });
       }
 
-      handleNavigationChange() {
+      setupPeriodicCheck() {
+        this.checkInterval = setInterval(() => {
+          this.checkForPageChange();
+        }, 3000);
+      }
+
+      checkForPageChange() {
         const newUrl = window.location.href;
-        if (newUrl !== this.currentUrl) {
+        const newTitle = document.title;
+
+        if (newUrl !== this.currentUrl || newTitle !== this.currentTitle) {
           console.log(
-            `📄 Pure event navigation: ${this.currentUrl} → ${newUrl}`
+            `📄 Subjournals page changed: ${this.currentUrl} → ${newUrl}`
           );
           this.currentUrl = newUrl;
+          this.currentTitle = newTitle;
 
-          // ✅ SINGLE EVENT: Notify all listeners once
           this.listeners.forEach((listener) => {
             try {
-              listener({ url: newUrl, timestamp: Date.now() });
+              listener({ url: newUrl, title: newTitle });
             } catch (error) {
-              console.error("❌ Navigation listener error:", error);
+              console.error(
+                "❌ Subjournals page change listener error:",
+                error
+              );
             }
           });
         }
@@ -234,19 +235,6 @@ export default {
       onPageChange(listener) {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
-      }
-
-      cleanup() {
-        window.removeEventListener("popstate", this.boundPopState);
-        window.removeEventListener("focus", this.boundFocus);
-
-        if (this.originalPushState) history.pushState = this.originalPushState;
-        if (this.originalReplaceState)
-          history.replaceState = this.originalReplaceState;
-        if (this.titleObserver) this.titleObserver.disconnect();
-
-        this.isActive = false;
-        console.log("🛑 Pure event detection stopped");
       }
     }
 
@@ -282,107 +270,42 @@ export default {
       },
     };
 
-    // ==================== 🚀 EVENT-DRIVEN BUTTON REGISTRY ====================
+    // ==================== SIMPLE BUTTON REGISTRY ====================
 
-    class EventDrivenButtonRegistry {
+    class SimpleButtonRegistry {
       constructor() {
         this.registeredButtons = new Map();
         this.activeButtons = new Map();
         this.stacks = { "top-left": [], "top-right": [] };
-        this.containerCache = null;
-        this.lastPageContext = null;
-        this.pageDetector = new PureEventPageDetector();
+        this.container = null;
+        this.debugMode = false;
+        this.pageDetector = new SimplePageChangeDetector();
+
+        this.pageDetector.onPageChange(() => {
+          this.rebuildAllButtons();
+        });
       }
 
       async initialize() {
-        // ✅ PURE EVENT: Only rebuild on actual navigation
-        this.pageDetector.onPageChange(({ url }) => {
-          this.handlePageChange(url);
-        });
-
-        // ✅ PURE EVENT: Only rebuild when container actually changes
-        this.setupContainerWatcher();
-
-        this.pageDetector.startListening();
-        this.buildInitialButtons();
-
-        console.log("✅ Event-driven button registry initialized");
+        this.setupContainer();
+        this.pageDetector.startMonitoring();
+        this.rebuildAllButtons();
+        console.log("✅ Subjournals Button Registry v4.0 initialized");
         return true;
       }
 
-      setupContainerWatcher() {
-        // ✅ EFFICIENT: Only watch for container-level changes
-        const containerObserver = new MutationObserver((mutations) => {
-          let containerChanged = false;
-
-          mutations.forEach((mutation) => {
-            // Only care about container-level changes
-            mutation.addedNodes.forEach((node) => {
-              if (
-                node.nodeType === 1 &&
-                (node.classList?.contains("roam-article") ||
-                  node.querySelector?.(".roam-article"))
-              ) {
-                containerChanged = true;
-              }
-            });
-
-            mutation.removedNodes.forEach((node) => {
-              if (
-                node === this.containerCache ||
-                node.contains?.(this.containerCache)
-              ) {
-                containerChanged = true;
-                this.containerCache = null;
-              }
-            });
-          });
-
-          if (containerChanged) {
-            console.log("📦 Container change detected - rebuilding buttons");
-            this.rebuildAllButtons();
-          }
-        });
-
-        // ✅ TARGETED: Only watch document body for major structural changes
-        containerObserver.observe(document.body, {
-          childList: true,
-          subtree: false, // Don't watch deep changes
-        });
+      setupContainer() {
+        this.container = null;
+        console.log(
+          "✅ Subjournals container setup configured for dynamic detection"
+        );
       }
 
-      async handlePageChange(url) {
-        console.log("🔄 Event-driven page change:", url);
-
-        // ✅ SMART: Only rebuild if context actually changed
-        const newContext = await getPageContext();
-        const contextChanged =
-          JSON.stringify(newContext) !== JSON.stringify(this.lastPageContext);
-
-        if (contextChanged) {
-          console.log("📄 Page context changed - rebuilding buttons");
-          this.lastPageContext = newContext;
-          this.rebuildAllButtons();
-        } else {
-          console.log("📄 Same context - no rebuild needed");
-        }
-      }
-
-      buildInitialButtons() {
-        // Initial button build on startup
-        this.rebuildAllButtons();
-      }
-
-      // ✅ CACHED: Container detection with caching
       getCurrentContainer() {
-        if (this.containerCache && document.contains(this.containerCache)) {
-          return this.containerCache;
-        }
-
         const candidates = [
           ".roam-article",
+          ".roam-main .roam-article",
           ".roam-main",
-          ".roam-center-panel",
         ];
         for (const selector of candidates) {
           const element = document.querySelector(selector);
@@ -390,23 +313,31 @@ export default {
             if (getComputedStyle(element).position === "static") {
               element.style.position = "relative";
             }
-            this.containerCache = element;
             return element;
           }
         }
-
-        this.containerCache = document.body;
+        console.warn("⚠️ No suitable container found, using document.body");
         return document.body;
       }
 
-      // ✅ EFFICIENT: Only rebuild when necessary
       rebuildAllButtons() {
+        console.log("🔄 Rebuilding subjournals buttons for current page...");
+
         this.clearAllButtons();
         this.clearAllStacks();
 
-        const visibleButtons = Array.from(this.registeredButtons.values())
-          .filter((config) => this.shouldButtonBeVisible(config))
-          .sort((a, b) => (a.priority ? -1 : 0) - (b.priority ? -1 : 0));
+        const visibleButtons = [];
+        this.registeredButtons.forEach((config) => {
+          if (this.shouldButtonBeVisible(config)) {
+            visibleButtons.push(config);
+          }
+        });
+
+        visibleButtons.sort((a, b) => {
+          if (a.priority && !b.priority) return -1;
+          if (!a.priority && b.priority) return 1;
+          return 0;
+        });
 
         visibleButtons.forEach((config) => {
           this.assignButtonToStack(config);
@@ -415,7 +346,7 @@ export default {
         this.placeAllStackedButtons();
 
         console.log(
-          `✅ Event-driven rebuild complete (${this.activeButtons.size} buttons)`
+          `✅ Subjournals button rebuild complete (${this.activeButtons.size} visible)`
         );
       }
 
@@ -438,11 +369,11 @@ export default {
         if (this.stacks[targetStack].length < stackConfig.maxButtons) {
           this.stacks[targetStack].push(config);
           console.log(
-            `📍 Button "${config.id}" assigned to ${targetStack} slot ${this.stacks[targetStack].length}`
+            `📍 Subjournals button "${config.id}" assigned to ${targetStack} slot ${this.stacks[targetStack].length}`
           );
         } else {
           console.warn(
-            `⚠️ Button "${config.id}" skipped - no slots available in ${targetStack}`
+            `⚠️ Subjournals button "${config.id}" skipped - no slots available in ${targetStack}`
           );
         }
       }
@@ -457,7 +388,7 @@ export default {
 
       createAndPlaceButton(config, stackName, stackIndex) {
         console.log(
-          `🔧 Creating compound button "${config.id}" with ${config.sections.length} sections`
+          `🔧 Creating compound subjournals button "${config.id}" with ${config.sections.length} sections`
         );
         return this.createCompoundButton(config, stackName, stackIndex);
       }
@@ -472,6 +403,8 @@ export default {
         buttonContainer.style.overflow = "hidden";
         buttonContainer.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
         buttonContainer.style.transition = "all 200ms ease";
+
+        // 🎯 EXACT STYLING: Warm yellow gradient with elegant brown border
         buttonContainer.style.background =
           "linear-gradient(135deg, #fffbeb, #fef3c7)";
         buttonContainer.style.border = "1.5px solid #8b4513";
@@ -535,9 +468,11 @@ export default {
         this.activeButtons.set(config.id, buttonContainer);
 
         console.log(
-          `✅ Compound button "${config.id}" placed at ${stackName} #${
-            stackIndex + 1
-          } with ${sections.length} sections`
+          `✅ Compound subjournals button "${
+            config.id
+          }" placed at ${stackName} #${stackIndex + 1} with ${
+            sections.length
+          } sections`
         );
       }
 
@@ -564,7 +499,7 @@ export default {
           userSelect: "none",
           transition: "all 150ms ease",
           backgroundColor: "transparent",
-          color: "#78716c",
+          color: "#78716c", // Muted brown text
           fontSize: "13px",
           fontWeight: "600",
           whiteSpace: "nowrap",
@@ -595,7 +530,7 @@ export default {
           sectionElement.setAttribute("title", section.tooltip);
         }
 
-        // Section-specific hover effects
+        // Section-specific hover effects with warm theme
         sectionElement.addEventListener("mouseenter", () => {
           switch (section.type) {
             case "dismiss":
@@ -641,7 +576,10 @@ export default {
               });
             }
           } catch (error) {
-            console.error(`❌ Section "${section.type}" click error:`, error);
+            console.error(
+              `❌ Subjournals section "${section.type}" click error:`,
+              error
+            );
           }
         });
 
@@ -649,12 +587,12 @@ export default {
       }
 
       dismissCompoundButton(buttonId, buttonContainer) {
-        console.log(`🗑️ Dismissing compound button "${buttonId}"`);
+        console.log(`🗑️ Dismissing subjournals compound button "${buttonId}"`);
         if (buttonContainer.parentNode) {
           buttonContainer.remove();
         }
         this.activeButtons.delete(buttonId);
-        console.log(`✅ Compound button "${buttonId}" dismissed`);
+        console.log(`✅ Subjournals compound button "${buttonId}" dismissed`);
       }
 
       shouldButtonBeVisible(config) {
@@ -697,22 +635,27 @@ export default {
         const { id, sections } = config;
 
         if (!sections || !Array.isArray(sections)) {
-          throw new Error(`Button "${id}" must have sections array`);
+          throw new Error(
+            `Subjournals button "${id}" must have sections array`
+          );
         }
 
+        // Validate each section
         sections.forEach((section, index) => {
           if (!section.type) {
-            throw new Error(`Button "${id}" section ${index} must have a type`);
+            throw new Error(
+              `Subjournals button "${id}" section ${index} must have a type`
+            );
           }
           if (!SECTION_TYPES[section.type]) {
             throw new Error(
-              `Button "${id}" section ${index} has invalid type: ${section.type}`
+              `Subjournals button "${id}" section ${index} has invalid type: ${section.type}`
             );
           }
         });
 
         if (this.registeredButtons.has(id)) {
-          throw new Error(`Button "${id}" already registered`);
+          throw new Error(`Subjournals button "${id}" already registered`);
         }
 
         const stack = config.stack || "top-right";
@@ -724,6 +667,7 @@ export default {
           );
         }
 
+        // Store configuration
         this.registeredButtons.set(id, {
           id,
           sections,
@@ -735,12 +679,12 @@ export default {
           style: config.style || {},
         });
 
-        if (this.pageDetector.isActive) {
+        if (this.pageDetector.isMonitoring) {
           this.rebuildAllButtons();
         }
 
         console.log(
-          `✅ Compound button "${id}" registered for ${stack} stack${
+          `✅ Subjournals compound button "${id}" registered for ${stack} stack${
             config.priority ? " (priority)" : ""
           }`
         );
@@ -755,7 +699,7 @@ export default {
           this.activeButtons.delete(id);
         }
         if (removed) {
-          console.log(`🗑️ Button "${id}" removed`);
+          console.log(`🗑️ Subjournals button "${id}" removed`);
         }
         return removed;
       }
@@ -764,8 +708,8 @@ export default {
         this.clearAllButtons();
         this.clearAllStacks();
         this.registeredButtons.clear();
-        this.pageDetector.cleanup();
-        console.log("🧹 Event-driven Button Registry cleaned up");
+        this.pageDetector.stopMonitoring();
+        console.log("🧹 Subjournals Button Registry cleaned up");
       }
     }
 
@@ -791,9 +735,6 @@ export default {
       black: "clr-blk-act",
     };
 
-    // ✅ NEW CONFIG LOCATION
-    const CONFIG_PAGE_NAME = "roam/ext/subjournals/config";
-
     // ==================== STATE MANAGEMENT ====================
 
     let buttonRegistry;
@@ -807,7 +748,10 @@ export default {
         const pageTitle = getCurrentPageTitle();
         if (!pageTitle) return { context: "unknown" };
 
+        // Check if it's a date page
         const isDate = DATE_PAGE_REGEX.test(pageTitle);
+
+        // Check if it's a configured subjournal
         const subjournals = getSubjournals();
         const matchingSubjournal = subjournals.find(
           (s) => s.name === pageTitle
@@ -874,12 +818,12 @@ export default {
       return months.indexOf(monthName);
     }
 
-    // ==================== ✅ CONFIGURATION READING - NEW LOCATION ====================
+    // ==================== CONFIGURATION READING ====================
 
     function getSubjournals() {
       try {
         const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+          [:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]
         `)?.[0]?.[0];
 
         if (!configPageUid) return [];
@@ -960,6 +904,7 @@ export default {
 
         console.log(`🔥 Filtered children with #st0 tag: ${children.length}`);
 
+        // Test each filtered child against the pattern (without #st0 prefix)
         const searchWithoutSt0 = searchPattern.replace("#st0 ", "");
         console.log(`🔍 Search pattern without #st0: "${searchWithoutSt0}"`);
 
@@ -1083,12 +1028,12 @@ export default {
       return blockUid;
     }
 
-    // ==================== ✅ ONBOARDING - NEW LOCATION ====================
+    // ==================== ONBOARDING ====================
 
     function needsOnboarding() {
       try {
         const configPageUid = window.roamAlphaAPI.q(`
-          [:find ?uid :where [?e :node/title "${CONFIG_PAGE_NAME}"] [?e :block/uid ?uid]]
+          [:find ?uid :where [?e :node/title "roam/subjournals"] [?e :block/uid ?uid]]
         `)?.[0]?.[0];
 
         if (!configPageUid) return true;
@@ -1109,11 +1054,11 @@ export default {
 
     async function createDefaultStructure() {
       try {
-        console.log(`🛠️ Creating ${CONFIG_PAGE_NAME} structure...`);
+        console.log("🛠️ Creating [[roam/subjournals]] structure...");
 
         const pageUid = window.roamAlphaAPI.util.generateUID();
         await window.roamAlphaAPI.data.page.create({
-          page: { title: CONFIG_PAGE_NAME, uid: pageUid },
+          page: { title: "roam/subjournals", uid: pageUid },
         });
 
         const instructionUid = window.roamAlphaAPI.util.generateUID();
@@ -1122,7 +1067,7 @@ export default {
           block: {
             uid: instructionUid,
             string:
-              "Welcome to Full Featured Subjournals v4.1! Pure event-driven architecture with new config location. List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
+              "Welcome to Full Featured Subjournals v4.0! List your personal subjournals below. Colors: red, orange, yellow, green, blue, purple, grey, brown, white, black. #clr-lgt-orn-act",
           },
         });
 
@@ -1166,17 +1111,17 @@ export default {
       hasShownOnboarding = true;
 
       setTimeout(() => {
-        alert(`📔 Welcome to Full Featured Subjournals v4.1!
+        alert(`📔 Welcome to Full Featured Subjournals v4.0!
 
-🎯 PURE EVENT-DRIVEN + NEW CONFIG LOCATION!
+🎯 Complete rebuild with compound buttons and integrated button manager!
 
-✨ What's new in v4.1:
-- ⚡ Zero polling/monitoring - pure event-driven architecture
-- 📍 New config location: ${CONFIG_PAGE_NAME}
-- 🚀 Significant performance improvements
-- 🔄 Intelligent context-aware button management
+✨ What's new:
+- Tripartite compound buttons: [ℹ️] [Main Action] [✕]
+- Intelligent button placement with other extensions
+- Context-aware: Works on date pages AND subjournal pages  
+- Bulletproof cascading block creation with #st0 filtering
 
-🔧 I've created ${CONFIG_PAGE_NAME} with sample configuration.
+🔧 I've created [[roam/subjournals]] with sample configuration.
 
 👆 Click the [ℹ️] section to customize your subjournals!
 
@@ -1187,6 +1132,7 @@ This is your one-time welcome message.`);
     // ==================== DROPDOWN FUNCTIONALITY ====================
 
     function createDropdown(subjournals, triggerElement, mode = "sidebar") {
+      // Remove any existing dropdown
       if (currentDropdown) {
         currentDropdown.remove();
         currentDropdown = null;
@@ -1194,7 +1140,7 @@ This is your one-time welcome message.`);
 
       if (subjournals.length === 0) {
         alert(
-          `⚠ No subjournals configured. Click the [ℹ️] button to set up ${CONFIG_PAGE_NAME}.`
+          "⚠ No subjournals configured. Click the [ℹ️] button to set up [[roam/subjournals]]."
         );
         return;
       }
@@ -1202,6 +1148,7 @@ This is your one-time welcome message.`);
       const dropdown = document.createElement("div");
       dropdown.className = "subjournals-dropdown";
 
+      // Warm yellow dropdown styling
       Object.assign(dropdown.style, {
         position: "absolute",
         zIndex: "10001",
@@ -1277,17 +1224,28 @@ This is your one-time welcome message.`);
           const buttonRect = triggerElement.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
 
+          // Position dropdown directly below the button, aligned to the right edge
           dropdown.style.top = buttonRect.bottom - containerRect.top + 2 + "px";
           dropdown.style.left = buttonRect.left - containerRect.left + "px";
           dropdown.style.width = buttonRect.width + "px";
 
-          console.log(`📍 Dropdown positioned relative to button`);
+          console.log(
+            `📍 Dropdown positioned: top=${
+              buttonRect.bottom - containerRect.top + 2
+            }px, left=${buttonRect.left - containerRect.left}px, width=${
+              buttonRect.width
+            }px`
+          );
         } catch (error) {
-          console.warn("⚠️ Could not position dropdown, using fallback");
+          console.warn(
+            "⚠️ Could not position dropdown relative to button, using default position"
+          );
           dropdown.style.top = "60px";
           dropdown.style.right = "20px";
         }
       } else {
+        // Fallback positioning
+        console.warn("⚠️ No valid trigger element, using fallback positioning");
         dropdown.style.top = "60px";
         dropdown.style.right = "20px";
       }
@@ -1424,6 +1382,8 @@ This is your one-time welcome message.`);
 
     function createSubjournalsButton() {
       return getPageContext().then((context) => {
+        const subjournals = getSubjournals();
+
         if (context.context === "date") {
           // Date page: Show dropdown for subjournal selection
           return {
@@ -1435,7 +1395,7 @@ This is your one-time welcome message.`);
                 tooltip: "Configure Subjournals",
                 onClick: () => {
                   window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { title: CONFIG_PAGE_NAME },
+                    page: { title: "roam/subjournals" },
                   });
                 },
               },
@@ -1466,7 +1426,7 @@ This is your one-time welcome message.`);
                 tooltip: "Configure Subjournals",
                 onClick: () => {
                   window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { title: CONFIG_PAGE_NAME },
+                    page: { title: "roam/subjournals" },
                   });
                 },
               },
@@ -1487,15 +1447,13 @@ This is your one-time welcome message.`);
       });
     }
 
-    // ==================== ✅ INITIALIZATION - EVENT-DRIVEN ====================
+    // ==================== INITIALIZATION ====================
 
     async function initialize() {
-      console.log(
-        "🚀 Initializing Full Featured Subjournals v4.1 - Event-Driven + New Config..."
-      );
+      console.log("🚀 Initializing Full Featured Subjournals v4.0...");
 
-      // ✅ EVENT-DRIVEN: Initialize button registry with zero polling
-      buttonRegistry = new EventDrivenButtonRegistry();
+      // Initialize button registry
+      buttonRegistry = new SimpleButtonRegistry();
       await buttonRegistry.initialize();
 
       // Check for onboarding
@@ -1511,7 +1469,7 @@ This is your one-time welcome message.`);
         buttonRegistry.registerButton(buttonConfig);
       }
 
-      // ✅ EVENT-DRIVEN: Re-register button on page changes (no polling)
+      // Re-register button on page changes
       buttonRegistry.pageDetector.onPageChange(async () => {
         buttonRegistry.removeButton("subjournals-main");
         const newButtonConfig = await createSubjournalsButton();
@@ -1522,7 +1480,7 @@ This is your one-time welcome message.`);
 
       // Settings panel
       extensionAPI.settings.panel.create({
-        tabTitle: "Full Featured Subjournals v4.1",
+        tabTitle: "Full Featured Subjournals v4.0",
         settings: [
           {
             id: "debugMode",
@@ -1530,24 +1488,18 @@ This is your one-time welcome message.`);
             description: "Enable detailed console logging for troubleshooting",
             action: { type: "switch" },
           },
-          {
-            id: "performanceMode",
-            name: "Performance Mode",
-            description: "Enable performance monitoring and optimization",
-            action: { type: "switch" },
-          },
         ],
       });
 
       console.log(
-        "✅ Full Featured Subjournals v4.1 initialized - Event-driven + New config location!"
+        "✅ Full Featured Subjournals v4.0 initialized with compound buttons!"
       );
 
       return {
         cleanup: () => {
           buttonRegistry.cleanup();
           if (currentDropdown) currentDropdown.remove();
-          console.log("🧹 Full Featured Subjournals v4.1 cleaned up");
+          console.log("🧹 Full Featured Subjournals v4.0 cleaned up");
         },
       };
     }
@@ -1556,6 +1508,6 @@ This is your one-time welcome message.`);
   },
 
   onunload: () => {
-    console.log("✅ Full Featured Subjournals v4.1 unloaded");
+    console.log("✅ Full Featured Subjournals v4.0 unloaded");
   },
 };
